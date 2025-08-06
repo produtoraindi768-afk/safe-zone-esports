@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+:root {
+  --radius: 0.625rem;
+  /* Safe Zone Esports Theme - Preto, Azul Neon, Branco */
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #111111;
+  --card-foreground: #ffffff;
+  --popover: #111111;
+  --popover-foreground: #ffffff;
+  --primary: #00BFFF;
+  --primary-foreground: #000000;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #888888;
+  --accent: #00BFFF;
+  --accent-foreground: #000000;
+  --destructive: #ff4444;
+  --border: #333333;
+  --input: #1a1a1a;
+  --ring: #00BFFF;
+  --chart-1: #00BFFF;
+  --chart-2: #0099CC;
+  --chart-3: #007399;
+  --chart-4: #005A73;
+  --chart-5: #004D66;
+}
+
+/* Safe Zone Custom Styles */
+.sz-gradient-bg {
+  background: linear-gradient(135deg, #000000 0%, #111111 50%, #1a1a1a 100%);
+}
+
+.sz-neon-glow {
+  box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+}
+
+.sz-neon-text {
+  color: #00BFFF;
+  text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+}
+
+.hover\:sz-neon-text:hover {
+  color: #00BFFF !important;
+  text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.sz-text-gradient {
+  background: linear-gradient(135deg, #00BFFF 0%, #0099CC 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sz-card-hover {
+  transition: all 0.3s ease;
+}
+
+.sz-card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 191, 255, 0.2);
+}
+
+.sz-live-indicator {
+  background: linear-gradient(45deg, #ff0000, #ff4444);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.sz-countdown {
+  background: linear-gradient(45deg, #00BFFF, #0099CC);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00BFFF;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0099CC;
+}
