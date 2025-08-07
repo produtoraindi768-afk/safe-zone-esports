@@ -1,18 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, Tag, Eye, MessageSquare, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { subscribeToNews, getPopularNews, incrementNewsViews } from '@/firebase/newsService';
 
 const News = () => {
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [searchTerm, setSearchTerm] = useState('');
+  const [newsArticles, setNewsArticles] = useState([]);
+  const [popularNews, setPopularNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const categories = ['Todas', 'CS2', 'Valorant', 'LoL', 'Geral', 'Transferências', 'Torneios'];
 
-  const newsArticles = [
+  // Dados simulados como fallback
+  const fallbackNews = [
     {
-      id: 1,
+      id: 'fallback-1',
       title: "Safe Zone conquista vitória épica no Regional Championship",
       summary: "Em uma partida eletrizante que durou mais de 2 horas, a Safe Zone demonstrou excelente coordenação tática e individual skill para derrotar os Thunder Wolves por 2-1 na final do Regional Championship de CS2.",
       content: "A partida começou de forma equilibrada, com ambas as equipes mostrando um nível técnico excepcional. No primeiro mapa, Mirage, a Safe Zone conseguiu uma vantagem inicial mas os Thunder Wolves reagiram e fecharam 16-14. O segundo mapa, Inferno, foi dominado pela Safe Zone com uma performance brilhante do SZ_Phantom que terminou com 28 frags. O mapa decisivo, Dust2, foi uma verdadeira montanha-russa emocional...",
@@ -25,7 +31,7 @@ const News = () => {
       featured: true
     },
     {
-      id: 2,
+      id: 'fallback-2',
       title: "SZ_Lightning: O novo reforço que promete revolucionar o Valorant",
       summary: "Entrevista exclusiva com o mais novo membro da Safe Zone, que traz experiência internacional e uma mentalidade vencedora para fortalecer ainda mais a equipe de Valorant.",
       content: "SZ_Lightning, de apenas 19 anos, já acumula experiência em torneios internacionais e chega à Safe Zone com grandes expectativas. Em entrevista exclusiva, ele revela seus planos para a equipe e como pretende contribuir para os próximos torneios...",
@@ -38,7 +44,7 @@ const News = () => {
       featured: false
     },
     {
-      id: 3,
+      id: 'fallback-3',
       title: "Calendário intensivo de treinos para a nova temporada",
       summary: "Safe Zone anuncia programa de preparação focado em estratégias avançadas, coordenação de equipe e análise de adversários para dominar a próxima temporada competitiva.",
       content: "A organização Safe Zone revelou hoje os detalhes do programa de treinos para a temporada 2024. O cronograma inclui 8 horas diárias de prática, sessões de análise de replays e bootcamps com equipes internacionais...",
@@ -49,47 +55,67 @@ const News = () => {
       views: 1456,
       comments: 67,
       featured: false
-    },
-    {
-      id: 4,
-      title: "Análise tática: Como a Safe Zone dominou o meta atual do CS2",
-      summary: "Breakdown completo das estratégias que levaram a Safe Zone ao topo do cenário regional, incluindo análise de mapas, posicionamentos e calls decisivas.",
-      content: "A ascensão meteórica da Safe Zone no cenário competitivo de CS2 não foi por acaso. Nossa análise revela as táticas inovadoras que a equipe tem utilizado para surpreender adversários...",
-      date: "2024-01-08",
-      author: "Ana Rodrigues",
-      image: "/src/assets/search_images/o5dJ7CbtDipR.jpg",
-      category: "CS2",
-      views: 3241,
-      comments: 198,
-      featured: false
-    },
-    {
-      id: 5,
-      title: "Parceria estratégica com marca de periféricos gaming",
-      summary: "Safe Zone anuncia nova parceria que fornecerá equipamentos de última geração para todos os jogadores, incluindo mouses, teclados e headsets profissionais.",
-      content: "A Safe Zone tem o prazer de anunciar uma parceria estratégica com uma das principais marcas de periféricos gaming do mundo. Esta colaboração garantirá que todos os nossos atletas tenham acesso aos melhores equipamentos...",
-      date: "2024-01-05",
-      author: "Carlos Mendes",
-      image: "/src/assets/search_images/bLKwRcWc2pEC.jpg",
-      category: "Geral",
-      views: 892,
-      comments: 34,
-      featured: false
-    },
-    {
-      id: 6,
-      title: "Bootcamp internacional: Safe Zone treina na Europa",
-      summary: "Equipe viaja para a Europa para bootcamp de duas semanas, enfrentando algumas das melhores equipes do continente em scrimmages intensivos.",
-      content: "A Safe Zone embarcou ontem para a Europa onde passará duas semanas em um bootcamp intensivo. O objetivo é ganhar experiência contra equipes de alto nível internacional...",
-      date: "2024-01-03",
-      author: "Sofia Almeida",
-      image: "/src/assets/search_images/LSRa1olnB4AK.jpg",
-      category: "Torneios",
-      views: 2156,
-      comments: 112,
-      featured: false
     }
   ];
+
+  // useEffect para buscar notícias do Firebase
+  useEffect(() => {
+    let unsubscribeNews = null;
+
+    const loadNews = async () => {
+      try {
+        console.log('🔥 Tentando conectar ao Firebase para buscar notícias...');
+        
+        // Subscrever para atualizações em tempo real
+        unsubscribeNews = subscribeToNews((firebaseNews) => {
+          console.log('📰 Notícias recebidas do Firebase:', firebaseNews.length);
+          if (firebaseNews.length > 0) {
+            setNewsArticles(firebaseNews);
+            setError(null);
+          } else {
+            console.log('⚠️ Nenhuma notícia encontrada no Firebase, usando dados simulados');
+            setNewsArticles(fallbackNews);
+          }
+          setLoading(false);
+        });
+
+        // Buscar notícias populares
+        const popular = await getPopularNews(5);
+        if (popular.length > 0) {
+          setPopularNews(popular);
+        } else {
+          setPopularNews(fallbackNews.slice(0, 3));
+        }
+
+      } catch (error) {
+        console.error('❌ Erro ao conectar com Firebase:', error);
+        console.log('🔄 Usando dados simulados como fallback');
+        setNewsArticles(fallbackNews);
+        setPopularNews(fallbackNews.slice(0, 3));
+        setError('Conectando ao Firebase... Usando dados simulados.');
+        setLoading(false);
+      }
+    };
+
+    loadNews();
+
+    // Cleanup
+    return () => {
+      if (unsubscribeNews) {
+        unsubscribeNews();
+      }
+    };
+  }, []);
+
+  // Função para incrementar visualizações
+  const handleReadMore = async (newsId) => {
+    try {
+      await incrementNewsViews(newsId);
+      console.log(`📈 Visualização incrementada para notícia ${newsId}`);
+    } catch (error) {
+      console.error('Erro ao incrementar visualizações:', error);
+    }
+  };
 
   const filteredNews = newsArticles.filter(article => {
     const matchesCategory = selectedCategory === 'Todas' || article.category === selectedCategory;
@@ -110,6 +136,16 @@ const News = () => {
           <p className="text-gray-400 text-lg">
             Fique por dentro de todas as novidades da Safe Zone Esports
           </p>
+          {error && (
+            <div className="mt-4 p-3 bg-yellow-900/50 border border-yellow-600 rounded-lg">
+              <p className="text-yellow-300 text-sm">{error}</p>
+            </div>
+          )}
+          {loading && (
+            <div className="mt-4 p-3 bg-blue-900/50 border border-blue-600 rounded-lg">
+              <p className="text-blue-300 text-sm">🔄 Carregando notícias...</p>
+            </div>
+          )}
         </div>
 
         {/* Search and Filters */}
@@ -192,7 +228,10 @@ const News = () => {
                     </div>
                   </div>
                   
-                  <Button className="bg-primary text-black hover:bg-primary/90">
+                  <Button 
+                    className="bg-primary text-black hover:bg-primary/90"
+                    onClick={() => handleReadMore(featuredArticle.id)}
+                  >
                     Ler Artigo Completo
                   </Button>
                 </div>
@@ -253,7 +292,12 @@ const News = () => {
                         {article.comments}
                       </div>
                     </div>
-                    <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80">
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="text-primary hover:text-primary/80"
+                      onClick={() => handleReadMore(article.id)}
+                    >
                       Ler mais
                     </Button>
                   </div>
@@ -278,7 +322,7 @@ const News = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {newsArticles.slice(0, 5).map((article, index) => (
+                {popularNews.map((article, index) => (
                   <div key={article.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-800/50 transition-colors">
                     <span className="text-primary font-bold text-lg">{index + 1}</span>
                     <div className="flex-1">

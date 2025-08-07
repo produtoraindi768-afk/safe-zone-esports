@@ -64,6 +64,15 @@
   box-shadow: 0 10px 30px rgba(0, 191, 255, 0.2);
 }
 
+.sz-popup-hover {
+  transition: all 0.4s ease;
+}
+
+.sz-popup-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0, 191, 255, 0.15), 0 0 25px rgba(0, 191, 255, 0.1);
+}
+
 .sz-live-indicator {
   background: linear-gradient(45deg, #ff0000, #ff4444);
   animation: pulse 2s infinite;
@@ -72,6 +81,19 @@
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.3), 0 0 40px rgba(0, 191, 255, 0.1);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(0, 191, 255, 0.5), 0 0 60px rgba(0, 191, 255, 0.2);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
 }
 
 .sz-countdown {

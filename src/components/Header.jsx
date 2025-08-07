@@ -24,7 +24,7 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center sz-neon-glow">
-              <img src="/logosz.svg" alt="Safe Zone Logo" className="w-8 h-8" />
+              <img src="/logo sz.svg" alt="Safe Zone Logo" className="w-8 h-8" />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-xl font-bold sz-neon-text">Safe Zone</h1>
@@ -33,7 +33,7 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden md:flex items-center space-x-8">
             {navigation.map((item) => {
               const Icon = item.icon;
               return (
@@ -70,18 +70,46 @@ const Header = () => {
         </div>
       </div>
 
+      {/* Floating Match Widget - Below Header */}
+      <div className="fixed top-16 right-8 z-40 mt-4">
+        <div className="bg-gray-900/95 border border-gray-700 rounded-md px-3 py-2 backdrop-blur-md shadow-lg animate-pulse-slow sz-popup-hover cursor-pointer">
+          <div className="flex items-center space-x-2 text-xs mb-1">
+            <div className="text-gray-400">Hoje, 12:00</div>
+            <div className="text-orange-400 font-semibold">MD3</div>
+            <div className="text-gray-400">•</div>
+            <div className="text-gray-400">VCT 2025</div>
+          </div>
+          <div className="flex items-center justify-between space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-sm flex items-center justify-center">
+                <span className="text-white text-xs font-bold">⚡</span>
+              </div>
+              <span className="text-white text-xs font-medium">Gentle Mates</span>
+              <span className="text-primary font-bold text-sm">0</span>
+            </div>
+            <div className="text-primary font-bold text-sm px-1">VS</div>
+            <div className="flex items-center space-x-2">
+              <span className="text-primary font-bold text-sm">0</span>
+              <span className="text-white text-xs font-medium">GIANTX</span>
+              <div className="w-4 h-4 bg-gradient-to-br from-orange-500 to-red-600 rounded-sm flex items-center justify-center">
+                <span className="text-white text-xs font-bold">G</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Mobile Navigation */}
       {isMenuOpen && (
-        <div className="md:hidden sz-gradient-bg backdrop-blur-md border-t" style={{borderColor: 'var(--border)'}}>
-          <div className="px-2 pt-2 pb-3 space-y-1">
+        <div className="md:hidden">
+          <div className="px-2 pt-2 pb-3 space-y-1 sz-gradient-bg border-t" style={{borderColor: 'var(--border)'}}>
             {navigation.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
                   to={item.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-md text-base font-medium transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium transition-all duration-200 ${
                     isActive(item.href)
                       ? 'sz-neon-text sz-neon-glow'
                       : 'hover:sz-neon-text'
@@ -90,6 +118,7 @@ const Header = () => {
                     color: isActive(item.href) ? 'var(--primary)' : 'var(--muted-foreground)',
                     backgroundColor: isActive(item.href) ? 'var(--primary)/10' : 'transparent'
                   }}
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   <Icon size={20} />
                   <span>{item.name}</span>
