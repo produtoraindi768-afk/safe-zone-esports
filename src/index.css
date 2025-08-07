@@ -43,3 +43,13 @@ body {
 .bg-accent { background-color: var(--accent); }
 .text-accent-foreground { color: var(--accent-foreground); }
 .border-border { border-color: var(--border); }
+
+/* Custom scrollbar styles */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

@@ -3,6 +3,7 @@ import { Play, Calendar, Clock, Trophy, Users, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getOnlineStreamers, subscribeToStreamers, processStreamerData, getFeaturedStreamer } from '../firebase/streamersService';
+import StreamPopup from '../components/StreamPopup';
 
 // ===== CONFIGURAÇÃO DOS STREAMERS =====
 // Dados simulados baseados no formato do Dashboard
@@ -67,6 +68,8 @@ const Home = () => {
   const [streamsData, setStreamsData] = useState([]);
   const [isLoadingStreams, setIsLoadingStreams] = useState(true);
   const [featuredStreamer, setFeaturedStreamer] = useState(null);
+  const [showStreamPopup, setShowStreamPopup] = useState(false);
+  const [currentPopupStream, setCurrentPopupStream] = useState(null);
 
   // Função para buscar dados diretamente do Firebase
   const checkStreamStatus = async () => {
@@ -176,6 +179,35 @@ const Home = () => {
   // Como já filtramos streams offline no checkStreamStatus, todas em streamsData estão ao vivo
   const liveStreams = streamsData;
 
+  // Detectar quando há live em destaque e outras lives online para mostrar popup
+  useEffect(() => {
+    // Mostrar popup quando há live em destaque E outras lives online (além da featured)
+    if (featuredStreamer && liveStreams.length > 0) {
+      setShowStreamPopup(true);
+      setCurrentPopupStream(featuredStreamer);
+    } else {
+      setShowStreamPopup(false);
+      setCurrentPopupStream(null);
+    }
+  }, [featuredStreamer, liveStreams]);
+
+  // Listener para controle manual do StreamPopup via botão "Ver Ao Vivo"
+  useEffect(() => {
+    const handleStreamPopupToggle = (event) => {
+      if (event.detail === 'toggle') {
+        if (featuredStreamer) {
+          setShowStreamPopup(prev => !prev);
+          if (!showStreamPopup) {
+            setCurrentPopupStream(featuredStreamer);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('streamPopupToggle', handleStreamPopupToggle);
+    return () => window.removeEventListener('streamPopupToggle', handleStreamPopupToggle);
+  }, [featuredStreamer, showStreamPopup]);
+
   const recentNews = [
     {
       id: 1,
@@ -240,182 +272,21 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section com Live Streams */}
+      {/* Hero Section com Notícias */}
       <section className="relative py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          {/* Área de Destaque - Stream Principal ou Notícias */}
+          {/* Hero Section - Sempre mostra notícias */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">
+              <span className="sz-neon-text">ÚLTIMAS NOTÍCIAS</span>
+            </h1>
+            <p className="text-lg text-gray-300">Fique por dentro das novidades do mundo dos esports</p>
+          </div>
+
+          {/* Área de Destaque - Notícias */}
           <div className="mb-8">
-            {featuredStreamer ? (
-              // Stream em Destaque
-              <div className="relative">
-                <div className="text-center mb-8">
-                  <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                    <span className="sz-neon-text">AO VIVO AGORA</span>
-                  </h1>
-                  <p className="text-lg text-gray-300">
-                    Stream em destaque da Safe Zone Esports
-                  </p>
-                </div>
-                
-                {/* Stream Principal */}
-                 <div className="max-w-3xl mx-auto">
-                   <a 
-                     href={`https://www.twitch.tv/${featuredStreamer.twitchChannel}`}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="block cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
-                   >
-                     <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden">
-                       <div className="relative">
-                         {featuredStreamer.twitchChannel ? (
-                           <div className="w-full relative">
-                             <iframe
-                               src={`https://player.twitch.tv/?channel=${featuredStreamer.twitchChannel}&parent=localhost&autoplay=true&muted=true&controls=false`}
-                               height="280"
-                               width="100%"
-                               allowFullScreen
-                               className="w-full h-70 rounded-lg"
-                             ></iframe>
-                             <div className="absolute bottom-4 right-4">
-                               <button 
-                                 onClick={(e) => {
-                                   e.preventDefault();
-                                   window.open(`https://www.twitch.tv/${featuredStreamer.twitchChannel}`, '_blank');
-                                 }}
-                                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
-                               >
-                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                   <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
-                                 </svg>
-                                 Assistir no Twitch
-                               </button>
-                             </div>
-                           </div>
-                         ) : (
-                           <img 
-                             src={featuredStreamer.thumbnail} 
-                             alt={`${featuredStreamer.player} stream`}
-                             className="w-full h-70 object-cover"
-                           />
-                         )}
-                         <div className="absolute top-4 left-4 sz-live-indicator text-white px-3 py-1 rounded-full text-sm font-bold">
-                           🔴 AO VIVO
-                         </div>
-                       </div>
-                       <CardContent className="p-4">
-                         <div className="flex justify-between items-start">
-                           <div>
-                             <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-blue-600 bg-clip-text text-transparent sz-text-gradient mb-2">
-                               {featuredStreamer.player}
-                             </h2>
-                             <div className="flex items-center gap-2 mb-2">
-                               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                               <span className="text-red-400 font-semibold text-sm">TRANSMITINDO AO VIVO</span>
-                             </div>
-                             {featuredStreamer.game && (
-                               <div className="flex items-center gap-2 mb-2">
-                                 <span className="text-gray-400 text-sm">Jogando:</span>
-                                 <span className="text-primary font-semibold text-sm">{featuredStreamer.game}</span>
-                               </div>
-                             )}
-                             <div className="flex items-center gap-2">
-                               <Users className="w-4 h-4 text-gray-400" />
-                               <span className="text-gray-300 text-sm">{featuredStreamer.viewers} viewers</span>
-                             </div>
-                           </div>
-                         </div>
-                       </CardContent>
-                     </Card>
-                   </a>
-                 </div>
-              </div>
-            ) : liveStreams.length > 0 ? (
-              // Stream Principal (quando não há featured mas há streams online)
-              <div className="relative">
-                <div className="text-center mb-8">
-                  <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                    <span className="sz-neon-text">AO VIVO AGORA</span>
-                  </h1>
-                  <p className="text-lg text-gray-300">
-                    Stream em destaque da Safe Zone Esports
-                  </p>
-                </div>
-                
-                {/* Stream Principal */}
-                 <div className="max-w-3xl mx-auto">
-                   <a 
-                     href={`https://www.twitch.tv/${liveStreams[0].twitchChannel}`}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="block cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
-                   >
-                     <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden">
-                       <div className="relative">
-                         {liveStreams[0].twitchChannel ? (
-                           <div className="w-full relative">
-                             <iframe
-                               src={`https://player.twitch.tv/?channel=${liveStreams[0].twitchChannel}&parent=localhost&autoplay=true&muted=true&controls=false`}
-                               height="280"
-                               width="100%"
-                               allowFullScreen
-                               className="w-full h-70 rounded-lg"
-                             ></iframe>
-                             <div className="absolute bottom-4 right-4">
-                               <button 
-                                 onClick={(e) => {
-                                   e.preventDefault();
-                                   window.open(`https://www.twitch.tv/${liveStreams[0].twitchChannel}`, '_blank');
-                                 }}
-                                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
-                               >
-                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                   <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
-                                 </svg>
-                                 Assistir no Twitch
-                               </button>
-                             </div>
-                           </div>
-                         ) : (
-                           <img 
-                             src={liveStreams[0].thumbnail} 
-                             alt={`${liveStreams[0].player} stream`}
-                             className="w-full h-70 object-cover"
-                           />
-                         )}
-                         <div className="absolute top-4 left-4 sz-live-indicator text-white px-3 py-1 rounded-full text-sm font-bold">
-                           🔴 AO VIVO
-                         </div>
-                       </div>
-                       <CardContent className="p-4">
-                         <div className="flex justify-between items-start">
-                           <div>
-                             <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-blue-600 bg-clip-text text-transparent sz-text-gradient mb-2">
-                               {liveStreams[0].player}
-                             </h2>
-                             <div className="flex items-center gap-2 mb-2">
-                               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                               <span className="text-red-400 font-semibold text-sm">TRANSMITINDO AO VIVO</span>
-                             </div>
-                             {liveStreams[0].game && (
-                               <div className="flex items-center gap-2 mb-2">
-                                 <span className="text-gray-400 text-sm">Jogando:</span>
-                                 <span className="text-primary font-semibold text-sm">{liveStreams[0].game}</span>
-                               </div>
-                             )}
-                             <div className="flex items-center gap-2">
-                               <Users className="w-4 h-4 text-gray-400" />
-                               <span className="text-gray-300 text-sm">{liveStreams[0].viewers} viewers</span>
-                             </div>
-                           </div>
-                         </div>
-                       </CardContent>
-                     </Card>
-                   </a>
-                 </div>
-              </div>
-            ) : (
-              // Últimas Notícias em Destaque - Bento Grid Design
-              <div className="relative">
+            {/* Últimas Notícias em Destaque - Bento Grid Design */}
+            <div className="relative">
                 {/* Notícia Principal */}
                 <div className="max-w-7xl mx-auto mb-8">
                   <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-80 group">
@@ -826,6 +697,15 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Stream Popup */}
+      <StreamPopup
+        featuredStreamer={featuredStreamer}
+        liveStreams={liveStreams}
+        isOpen={showStreamPopup}
+        onClose={() => setShowStreamPopup(false)}
+        onStreamChange={(stream) => setCurrentPopupStream(stream)}
+      />
     </div>
   );
 };

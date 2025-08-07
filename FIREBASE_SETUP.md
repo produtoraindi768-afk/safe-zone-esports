@@ -73,6 +73,67 @@
 }
 ```
 
+#### 4.3. Coleção `matches`
+1. Crie uma nova coleção chamada `matches`
+2. Adicione documentos com esta estrutura:
+
+```json
+{
+  "date": "2024-01-15",
+  "time": "14:30",
+  "tournament": "VCT 2025",
+  "game": "Valorant",
+  "status": "live",
+  "format": "MD3",
+  "isFeatured": true,
+  "teams": {
+    "home": {
+      "name": "Gentle Mates",
+      "logo": "⚡",
+      "score": 1,
+      "color": "from-blue-500 to-purple-600"
+    },
+    "away": {
+      "name": "GIANTX",
+      "logo": "G",
+      "score": 0,
+      "color": "from-orange-500 to-red-600"
+    }
+  },
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-01-15T14:30:00Z"
+}
+```
+
+**Exemplo de partida futura:**
+```json
+{
+  "date": "2024-01-16",
+  "time": "16:00",
+  "tournament": "Champions League",
+  "game": "CS2",
+  "status": "upcoming",
+  "format": "MD5",
+  "isFeatured": false,
+  "teams": {
+    "home": {
+      "name": "Safe Zone",
+      "logo": "SZ",
+      "score": 0,
+      "color": "from-green-500 to-blue-600"
+    },
+    "away": {
+      "name": "Thunder Wolves",
+      "logo": "TW",
+      "score": 0,
+      "color": "from-purple-500 to-pink-600"
+    }
+  },
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-01-15T10:30:00Z"
+}
+```
+
 ### 5. 🔧 Atualizar credenciais no código
 Após obter a API Key e App ID, atualize o arquivo `src/firebase/config.js`:
 
@@ -107,6 +168,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /streamers/{document} {
+      allow read, write: if true;
+    }
+    match /news/{document} {
+      allow read, write: if true;
+    }
+    match /matches/{document} {
       allow read, write: if true;
     }
   }
