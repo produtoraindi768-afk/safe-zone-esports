@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Partidas - Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .container {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .match-card {
+            background: #3a3a3a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #00ff88;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .upcoming { background-color: #0066cc; }
+        .live { background-color: #ff4444; }
+        .finished { background-color: #666666; }
+        button {
+            background: #00ff88;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #00cc6a;
+        }
+        #loading {
+            text-align: center;
+            color: #00ff88;
+        }
+        #error {
+            color: #ff4444;
+            background: #4a2a2a;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Teste de Partidas - Firebase</h1>
+    
+    <div class="container">
+        <h2>Controles de Teste</h2>
+        <button onclick="testConnection()">Testar Conexão</button>
+        <button onclick="getAllMatches()">Buscar Todas as Partidas</button>
+        <button onclick="getUpcomingMatches()">Buscar Próximas Partidas</button>
+        <button onclick="addTestMatch()">Adicionar Partida de Teste</button>
+    </div>
+
+    <div id="loading" style="display: none;">Carregando...</div>
+    <div id="error" style="display: none;"></div>
+    
+    <div class="container">
+        <h2>Resultados</h2>
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            getDocs, 
+            addDoc, 
+            query, 
+            where,
+            orderBy,
+            limit
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBMJ_OR41iCIMGDEmGYUkf1mI6Aym9W04w",
+            authDomain: "dashboard-f0217.firebaseapp.com",
+            projectId: "dashboard-f0217",
+            storageBucket: "dashboard-f0217.firebasestorage.app",
+            messagingSenderId: "791615571",
+            appId: "1:791615571:web:396e6bc323a648864d0ea6",
+            measurementId: "G-DN79LHPJ42"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').style.display = 'block';
+            hideLoading();
+        }
+
+        function displayResults(data, title) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <h3>${title}</h3>
+                <p><strong>Total encontrado:</strong> ${data.length}</p>
+                ${data.map(match => `
+                    <div class="match-card">
+                        <h4>Safe Zone vs ${match.team2?.name || match.opponent || 'Adversário'}</h4>
+                        <p><strong>Torneio:</strong> ${match.tournament || match.tournamentName || 'N/A'}</p>
+                        <p><strong>Jogo:</strong> ${match.game || 'N/A'}</p>
+                        <p><strong>Data:</strong> ${match.scheduledDate || match.date || 'N/A'}</p>
+                        <span class="status ${match.status}">${match.status || 'N/A'}</span>
+                        <details>
+                            <summary>Ver dados completos</summary>
+                            <pre>${JSON.stringify(match, null, 2)}</pre>
+                        </details>
+                    </div>
+                `).join('')}
+            `;
+            hideLoading();
+        }
+
+        window.testConnection = async function() {
+            showLoading();
+            try {
+                const testCollection = collection(db, 'matches');
+                console.log('Conexão com Firebase estabelecida!');
+                document.getElementById('results').innerHTML = '<p style="color: #00ff88;">✅ Conexão com Firebase estabelecida com sucesso!</p>';
+                hideLoading();
+            } catch (error) {
+                console.error('Erro na conexão:', error);
+                showError('Erro na conexão: ' + error.message);
+            }
+        };
+
+        window.getAllMatches = async function() {
+            showLoading();
+            try {
+                const matchesCollection = collection(db, 'matches');
+                const snapshot = await getDocs(matchesCollection);
+                const matches = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                console.log('Todas as partidas:', matches);
+                displayResults(matches, 'Todas as Partidas');
+            } catch (error) {
+                console.error('Erro ao buscar partidas:', error);
+                showError('Erro ao buscar partidas: ' + error.message);
+            }
+        };
+
+        window.getUpcomingMatches = async function() {
+            showLoading();
+            try {
+                const matchesCollection = collection(db, 'matches');
+                const upcomingQuery = query(
+                    matchesCollection,
+                    where('status', '==', 'upcoming'),
+                    limit(10)
+                );
+                const snapshot = await getDocs(upcomingQuery);
+                const matches = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                console.log('Próximas partidas:', matches);
+                displayResults(matches, 'Próximas Partidas (status: upcoming)');
+            } catch (error) {
+                console.error('Erro ao buscar próximas partidas:', error);
+                showError('Erro ao buscar próximas partidas: ' + error.message);
+            }
+        };
+
+        window.addTestMatch = async function() {
+            showLoading();
+            try {
+                const matchesCollection = collection(db, 'matches');
+                const testMatch = {
+                    status: 'upcoming',
+                    game: 'CS2',
+                    tournament: 'Regional Championship',
+                    tournamentName: 'Regional Championship',
+                    scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Amanhã
+                    team1: {
+                        name: 'Safe Zone Esports',
+                        logo: 'SZ'
+                    },
+                    team2: {
+                        name: 'Thunder Wolves',
+                        logo: 'TW'
+                    },
+                    format: 'MD3',
+                    createdAt: new Date().toISOString()
+                };
+                
+                const docRef = await addDoc(matchesCollection, testMatch);
+                console.log('Partida de teste adicionada:', docRef.id);
+                document.getElementById('results').innerHTML = `<p style="color: #00ff88;">✅ Partida de teste adicionada com ID: ${docRef.id}</p>`;
+                hideLoading();
+            } catch (error) {
+                console.error('Erro ao adicionar partida:', error);
+                showError('Erro ao adicionar partida: ' + error.message);
+            }
+        };
+
+        // Teste automático ao carregar
+        window.addEventListener('load', () => {
+            console.log('Página carregada, testando conexão...');
+            testConnection();
+        });
+    </script>
+</body>
+</html>

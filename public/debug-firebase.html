@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Firebase - Safe Zone Esports</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            background-color: #ff4444;
+            color: white;
+        }
+        .success {
+            background-color: #44ff44;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug Firebase - Safe Zone Esports</h1>
+    
+    <div class="container">
+        <h2>Teste de Conexão Firebase</h2>
+        <button onclick="testConnection()">Testar Conexão</button>
+        <button onclick="listAllCollections()">Listar Coleções</button>
+        <button onclick="checkMatchesCollection()">Verificar Coleção Matches</button>
+        <button onclick="getUpcomingMatches()">Buscar Próximas Partidas</button>
+        <button onclick="addTestMatch()">Adicionar Partida Teste</button>
+        <div id="result" class="result"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, getDocs, addDoc, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvL8fKZtMxqGOaKQJGvqY8fKZtMxqGOaK",
+            authDomain: "dashboard-f0217.firebaseapp.com",
+            projectId: "dashboard-f0217",
+            storageBucket: "dashboard-f0217.firebasestorage.app",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456789012345678",
+            measurementId: "G-ABCDEFGHIJ"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Função para mostrar resultado
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = isError ? 'result error' : 'result success';
+            console.log(message);
+        }
+
+        // Testar conexão
+        window.testConnection = async function() {
+            try {
+                showResult('Testando conexão com Firebase...');
+                const testCollection = collection(db, 'test');
+                showResult('✅ Conexão com Firebase estabelecida com sucesso!\nProjeto: ' + firebaseConfig.projectId);
+            } catch (error) {
+                showResult('❌ Erro na conexão: ' + error.message, true);
+            }
+        };
+
+        // Listar todas as coleções (limitado)
+        window.listAllCollections = async function() {
+            try {
+                showResult('Verificando coleções disponíveis...');
+                
+                const collections = ['matches', 'news', 'streamers', 'teams', 'tournaments'];
+                let result = 'Coleções verificadas:\n\n';
+                
+                for (const collectionName of collections) {
+                    try {
+                        const collectionRef = collection(db, collectionName);
+                        const snapshot = await getDocs(collectionRef);
+                        result += `📁 ${collectionName}: ${snapshot.size} documentos\n`;
+                    } catch (error) {
+                        result += `📁 ${collectionName}: Erro - ${error.message}\n`;
+                    }
+                }
+                
+                showResult(result);
+            } catch (error) {
+                showResult('❌ Erro ao listar coleções: ' + error.message, true);
+            }
+        };
+
+        // Verificar coleção matches
+        window.checkMatchesCollection = async function() {
+            try {
+                showResult('Verificando coleção matches...');
+                
+                const matchesRef = collection(db, 'matches');
+                const snapshot = await getDocs(matchesRef);
+                
+                let result = `📊 Coleção 'matches' encontrada!\n`;
+                result += `📈 Total de documentos: ${snapshot.size}\n\n`;
+                
+                if (snapshot.size > 0) {
+                    result += 'Primeiros documentos:\n';
+                    snapshot.docs.slice(0, 3).forEach((doc, index) => {
+                        const data = doc.data();
+                        result += `\n${index + 1}. ID: ${doc.id}\n`;
+                        result += `   Status: ${data.status || 'N/A'}\n`;
+                        result += `   Data: ${data.scheduledDate || data.date || 'N/A'}\n`;
+                        result += `   Teams: ${data.team1?.name || 'N/A'} vs ${data.team2?.name || 'N/A'}\n`;
+                    });
+                } else {
+                    result += '⚠️ Nenhum documento encontrado na coleção matches';
+                }
+                
+                showResult(result);
+            } catch (error) {
+                showResult('❌ Erro ao verificar coleção matches: ' + error.message, true);
+            }
+        };
+
+        // Buscar próximas partidas
+        window.getUpcomingMatches = async function() {
+            try {
+                showResult('Buscando próximas partidas...');
+                
+                const matchesRef = collection(db, 'matches');
+                
+                // Tentar com query
+                let matches = [];
+                try {
+                    const upcomingQuery = query(
+                        matchesRef,
+                        where('status', '==', 'upcoming'),
+                        orderBy('scheduledDate', 'asc'),
+                        limit(10)
+                    );
+                    const snapshot = await getDocs(upcomingQuery);
+                    matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (queryError) {
+                    showResult('Query com orderBy falhou, tentando sem ordenação...');
+                    const simpleQuery = query(
+                        matchesRef,
+                        where('status', '==', 'upcoming'),
+                        limit(10)
+                    );
+                    const snapshot = await getDocs(simpleQuery);
+                    matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+                
+                let result = `🎮 Próximas partidas encontradas: ${matches.length}\n\n`;
+                
+                if (matches.length > 0) {
+                    matches.forEach((match, index) => {
+                        result += `${index + 1}. ${match.team1?.name || 'Team1'} vs ${match.team2?.name || 'Team2'}\n`;
+                        result += `   Data: ${match.scheduledDate || 'N/A'}\n`;
+                        result += `   Status: ${match.status}\n`;
+                        result += `   Torneio: ${match.tournament || 'N/A'}\n\n`;
+                    });
+                } else {
+                    result += '⚠️ Nenhuma partida com status "upcoming" encontrada';
+                }
+                
+                showResult(result);
+            } catch (error) {
+                showResult('❌ Erro ao buscar próximas partidas: ' + error.message, true);
+            }
+        };
+
+        // Adicionar partida de teste
+        window.addTestMatch = async function() {
+            try {
+                showResult('Adicionando partida de teste...');
+                
+                const testMatch = {
+                    team1: { name: 'Safe Zone' },
+                    team2: { name: 'Test Opponent' },
+                    status: 'upcoming',
+                    scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Amanhã
+                    tournament: 'Test Tournament',
+                    game: 'CS2',
+                    createdAt: new Date().toISOString()
+                };
+                
+                const matchesRef = collection(db, 'matches');
+                const docRef = await addDoc(matchesRef, testMatch);
+                
+                showResult(`✅ Partida de teste adicionada com sucesso!\nID: ${docRef.id}\nData: ${testMatch.scheduledDate}`);
+            } catch (error) {
+                showResult('❌ Erro ao adicionar partida de teste: ' + error.message, true);
+            }
+        };
+
+        // Testar conexão automaticamente ao carregar
+        window.addEventListener('load', () => {
+            testConnection();
+        });
+    </script>
+</body>
+</html>

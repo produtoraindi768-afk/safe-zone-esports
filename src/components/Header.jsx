@@ -72,11 +72,11 @@ const Header = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center sz-neon-glow">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center">
               <img src="/logo sz.svg" alt="Safe Zone Logo" className="w-8 h-8" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold sz-neon-text">Safe Zone</h1>
+              <h1 className="text-xl font-bold sz-neon-text">Sᴀꜰᴇ Zᴏɴᴇ</h1>
               <p className="text-xs -mt-1" style={{color: 'var(--muted-foreground)'}}>ESPORTS</p>
             </div>
           </Link>

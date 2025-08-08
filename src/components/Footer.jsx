@@ -21,7 +21,7 @@ const Footer = () => {
                 <img src="/logo sz.svg" alt="Safe Zone Logo" className="w-10 h-10" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold sz-neon-text">Safe Zone</h3>
+                <h3 className="text-2xl font-bold sz-neon-text">Sᴀꜰᴇ Zᴏɴᴇ</h3>
                 <p className="text-sm" style={{color: 'var(--muted-foreground)'}}>ESPORTS</p>
               </div>
             </div>

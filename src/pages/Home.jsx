@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getOnlineStreamers, subscribeToStreamers, processStreamerData, getFeaturedStreamer } from '../firebase/streamersService';
 import { getMainFeaturedNews, getRecentNews, processNewsData, getAllNews } from '../firebase/newsService';
+import { getUpcomingMatches } from '../firebase/matchesService';
+import { onSnapshot, collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import StreamPopup from '../components/StreamPopup';
 import NewsModal from '../components/NewsModal';
 
@@ -79,6 +82,10 @@ const Home = () => {
   const [isLoadingNews, setIsLoadingNews] = useState(true);
   const [selectedNews, setSelectedNews] = useState(null);
   const [showNewsModal, setShowNewsModal] = useState(false);
+  
+  // Estados para próximas partidas
+  const [upcomingMatches, setUpcomingMatches] = useState([]);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(true);
 
   // Função para carregar notícias
   const loadNews = async () => {
@@ -225,7 +232,12 @@ const Home = () => {
         // Filtrar notícias recentes excluindo a notícia de destaque para evitar repetição
         const recentNewsFiltered = allNews
           .filter(news => news.status === 'published' && news.id !== mainNews.id)
-          .sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate))
+          .sort((a, b) => {
+            // Ordenar por createdAt mais recente primeiro
+            const dateA = a.createdAt ? new Date(a.createdAt.toDate ? a.createdAt.toDate() : a.createdAt) : new Date(0);
+            const dateB = b.createdAt ? new Date(b.createdAt.toDate ? b.createdAt.toDate() : b.createdAt) : new Date(0);
+            return dateB - dateA;
+          })
           .slice(0, 6);
         
         console.log('🎯 Notícia em destaque encontrada:', featuredNews ? featuredNews.title : 'NENHUMA');
@@ -313,16 +325,210 @@ const Home = () => {
     setShowNewsModal(true);
   };
 
+  // Função para carregar próximas partidas do Firebase
+  const loadUpcomingMatches = async () => {
+    console.log('🔄 Iniciando carregamento de próximas partidas...');
+    try {
+      setIsLoadingMatches(true);
+      console.log('📡 Chamando getUpcomingMatches do Firebase...');
+      const matches = await getUpcomingMatches();
+      console.log('📊 Dados brutos recebidos do Firebase:', matches);
+      console.log('📊 Número de partidas recebidas:', matches?.length || 0);
+      
+      // Filtrar apenas partidas futuras e ordenar por data mais próxima
+      const now = new Date();
+      const futureMatches = matches
+        .filter(match => {
+          if (!match.scheduledDate) return false;
+          const matchDate = new Date(match.scheduledDate);
+          return matchDate >= now;
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.scheduledDate);
+          const dateB = new Date(b.scheduledDate);
+          return dateA - dateB;
+        })
+        .slice(0, 4); // Limitar a 4 partidas
+      
+      console.log('🎯 Partidas futuras filtradas e ordenadas:', futureMatches);
+      
+      // Processar dados para o formato esperado pelos cards
+      const processedMatches = futureMatches.map(match => {
+        console.log('🔧 Processando partida:', match);
+        let date, time;
+        
+        // Processar data e hora
+        if (match.scheduledDate) {
+          const scheduledDateTime = new Date(match.scheduledDate);
+          date = scheduledDateTime.toISOString().split('T')[0];
+          time = scheduledDateTime.toTimeString().slice(0, 5);
+          console.log('📅 Data processada:', { scheduledDate: match.scheduledDate, date, time });
+        } else {
+          date = 'Data não definida';
+          time = 'Hora não definida';
+          console.log('⚠️ scheduledDate não encontrado para partida:', match.id);
+        }
+        
+        const processed = {
+          id: match.id,
+          opponent: match.team2?.name || match.teams?.away?.name || 'Adversário',
+          tournament: match.tournament || match.tournamentName || 'Torneio',
+          date: date,
+          time: time,
+          game: match.game || 'Game',
+          team1: match.team1 || null,
+          team2: match.team2 || null,
+          createdAt: match.createdAt,
+          scheduledDate: match.scheduledDate
+        };
+        
+        console.log('✅ Partida processada:', processed);
+        return processed;
+      });
+      
+      // Ordenar por scheduledDate mais próximo primeiro
+      const sortedMatches = processedMatches.sort((a, b) => {
+        // Ordenar por scheduledDate original mais próximo
+        const dateA = new Date(a.scheduledDate || a.date);
+        const dateB = new Date(b.scheduledDate || b.date);
+        return dateA - dateB;
+      });
+      
+      console.log('🎯 Total de partidas processadas e ordenadas:', sortedMatches.length);
+      setUpcomingMatches(sortedMatches);
+      console.log('✅ Estado upcomingMatches atualizado com:', sortedMatches);
+    } catch (error) {
+      console.error('❌ Erro ao carregar próximas partidas:', error);
+      console.log('🔄 Usando dados simulados como fallback...');
+      // Fallback para dados simulados em caso de erro
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dayAfterTomorrow = new Date();
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+      
+      const fallbackMatches = [
+        {
+          id: 1,
+          opponent: "Thunder Wolves",
+          tournament: "Regional Championship",
+          date: tomorrow.toISOString().split('T')[0],
+          time: "19:00",
+          game: "CS2"
+        },
+        {
+          id: 2,
+          opponent: "Cyber Eagles",
+          tournament: "VCT Qualifier",
+          date: dayAfterTomorrow.toISOString().split('T')[0],
+          time: "16:30",
+          game: "Valorant"
+        }
+      ];
+      setUpcomingMatches(fallbackMatches);
+      console.log('🔄 Fallback aplicado:', fallbackMatches);
+    } finally {
+      setIsLoadingMatches(false);
+      console.log('🏁 Carregamento de partidas finalizado');
+    }
+  };
+
   // Verificar streams e carregar notícias ao carregar o componente
   useEffect(() => {
     checkStreamStatus();
     loadNews();
+    loadUpcomingMatches();
     
-    // Tenta configurar listener em tempo real do Firebase
-    let unsubscribe = null;
+    // Configurar listener em tempo real para partidas
+    let unsubscribeMatches = null;
+    let unsubscribeStreamers = null;
     
     try {
-      unsubscribe = subscribeToStreamers((onlineStreamers) => {
+      // Listener para partidas em tempo real
+      console.log('🔄 Configurando listener em tempo real para partidas...');
+      const matchesRef = collection(db, 'matches');
+      const matchesQuery = query(
+        matchesRef,
+        where('status', 'in', ['upcoming', 'scheduled']),
+        limit(10)
+      );
+      
+      unsubscribeMatches = onSnapshot(matchesQuery, (snapshot) => {
+        console.log('🔄 Atualização em tempo real de partidas recebida!');
+        const matches = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        console.log('📊 Partidas atualizadas em tempo real:', matches);
+        
+        // Filtrar apenas partidas futuras e ordenar por data mais próxima
+        const now = new Date();
+        const futureMatches = matches
+          .filter(match => {
+            if (!match.scheduledDate) return false;
+            const matchDate = new Date(match.scheduledDate);
+            return matchDate >= now;
+          })
+          .sort((a, b) => {
+            const dateA = new Date(a.scheduledDate);
+            const dateB = new Date(b.scheduledDate);
+            return dateA - dateB;
+          })
+          .slice(0, 4); // Limitar a 4 partidas
+        
+        console.log('🎯 Partidas futuras filtradas em tempo real:', futureMatches);
+        
+        // Processar dados para o formato esperado pelos cards
+        const processedMatches = futureMatches.map(match => {
+            let date, time;
+            
+            if (match.scheduledDate) {
+              const scheduledDateTime = new Date(match.scheduledDate);
+              date = scheduledDateTime.toISOString().split('T')[0];
+              time = scheduledDateTime.toTimeString().slice(0, 5);
+            } else {
+              date = 'Data não definida';
+              time = 'Hora não definida';
+            }
+            
+            return {
+              id: match.id,
+              opponent: match.team2?.name || match.teams?.away?.name || 'Adversário',
+              tournament: match.tournament || match.tournamentName || 'Torneio',
+              date: date,
+              time: time,
+              game: match.game || 'Game',
+              team1: match.team1 || null,
+              team2: match.team2 || null,
+              createdAt: match.createdAt,
+              scheduledDate: match.scheduledDate
+            };
+          });
+        
+        // Ordenar por scheduledDate mais próximo primeiro
+        const sortedMatches = processedMatches.sort((a, b) => {
+          // Ordenar por scheduledDate original mais próximo
+          const dateA = new Date(a.scheduledDate || a.date);
+          const dateB = new Date(b.scheduledDate || b.date);
+          return dateA - dateB;
+        });
+        
+        setUpcomingMatches(sortedMatches);
+        setIsLoadingMatches(false);
+        console.log('✅ Estado de partidas atualizado em tempo real:', sortedMatches);
+      }, (error) => {
+        console.error('❌ Erro no listener de partidas:', error);
+        // Fallback para carregamento manual
+        loadUpcomingMatches();
+      });
+    } catch (error) {
+      console.log('❌ Erro ao configurar listener de partidas, usando carregamento manual:', error);
+      loadUpcomingMatches();
+    }
+    
+    try {
+      // Listener para streamers
+      unsubscribeStreamers = subscribeToStreamers((onlineStreamers) => {
         console.log('Atualização em tempo real recebida do Firebase');
         const onlineStreams = onlineStreamers.map(streamer => {
           console.log(`Stream ${streamer.name} atualizada em tempo real`);
@@ -339,11 +545,19 @@ const Home = () => {
     const interval = setInterval(checkStreamStatus, 2 * 60 * 1000);
     
     return () => {
-      if (unsubscribe) {
+      if (unsubscribeMatches) {
         try {
-          unsubscribe();
+          unsubscribeMatches();
+          console.log('🔄 Listener de partidas desconectado');
         } catch (error) {
-          console.log('Erro ao desconectar listener do Firebase');
+          console.log('Erro ao desconectar listener de partidas');
+        }
+      }
+      if (unsubscribeStreamers) {
+        try {
+          unsubscribeStreamers();
+        } catch (error) {
+          console.log('Erro ao desconectar listener de streamers');
         }
       }
       clearInterval(interval);
@@ -404,24 +618,7 @@ const Home = () => {
 
 
 
-  const upcomingMatches = [
-    {
-      id: 1,
-      opponent: "Thunder Wolves",
-      tournament: "Regional Championship",
-      date: "2024-01-18",
-      time: "19:00",
-      game: "CS2"
-    },
-    {
-      id: 2,
-      opponent: "Cyber Eagles",
-      tournament: "VCT Qualifier",
-      date: "2024-01-20",
-      time: "16:30",
-      game: "Valorant"
-    }
-  ];
+
 
   return (
     <div className="min-h-screen">
@@ -760,24 +957,77 @@ const Home = () => {
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl font-bold text-white mb-8">Próximas Partidas</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {upcomingMatches.map((match) => (
-              <Card key={match.id} className="bg-gray-900/50 border-gray-700 sz-card-hover">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-white">Safe Zone vs {match.opponent}</h3>
-                      <p className="text-gray-400">{match.tournament}</p>
+          {isLoadingMatches ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[1, 2].map((i) => (
+                <Card key={i} className="bg-gray-900/50 border-gray-700">
+                  <CardContent className="p-6">
+                    <div className="animate-pulse">
+                      <div className="h-6 bg-gray-700 rounded mb-2"></div>
+                      <div className="h-4 bg-gray-700 rounded mb-4 w-3/4"></div>
+                      <div className="h-4 bg-gray-700 rounded w-1/2"></div>
                     </div>
-                    <div className="bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                      {match.game}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : upcomingMatches.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {upcomingMatches.map((match) => (
+                <Card key={match.id} className="bg-gray-900/50 border-gray-700 sz-card-hover">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        {/* Teams with avatars */}
+                        <div className="flex items-center justify-between mb-3">
+                          {/* Team 1 */}
+                          <div className="flex items-center space-x-3">
+                            {match.team1?.avatar && (
+                              <img 
+                                src={match.team1.avatar} 
+                                alt={match.team1.name || 'Safe Zone'}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <span className="text-white font-semibold">
+                              {match.team1?.name || 'Safe Zone'}
+                            </span>
+                          </div>
+                          
+                          <span className="text-gray-400 font-bold text-lg mx-4">VS</span>
+                          
+                          {/* Team 2 */}
+                          <div className="flex items-center space-x-3">
+                            <span className="text-white font-semibold">
+                              {match.team2?.name || match.opponent}
+                            </span>
+                            {match.team2?.avatar && (
+                              <img 
+                                src={match.team2.avatar} 
+                                alt={match.team2.name || match.opponent}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            )}
+                          </div>
+                        </div>
+                        
+                        <p className="text-gray-400 text-center">{match.tournament}</p>
+                      </div>
+                      <div className="bg-primary text-black px-2 py-1 rounded text-xs font-bold ml-4">
+                        {match.game}
+                      </div>
                     </div>
-                  </div>
                   
-                  <div className="flex items-center space-x-4 text-gray-300">
+                  <div className="flex items-center justify-center space-x-4 text-gray-300">
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-2" />
-                      {match.date}
+                      {new Date(match.scheduledDate).toLocaleDateString('pt-BR')}
                     </div>
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-2" />
@@ -788,6 +1038,13 @@ const Home = () => {
               </Card>
             ))}
           </div>
+        ) : (
+          <div className="text-center py-12">
+            <Trophy className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-400 mb-2">Nenhuma partida agendada</h3>
+            <p className="text-gray-500">As próximas partidas aparecerão aqui em breve.</p>
+          </div>
+        )}
         </div>
       </section>
 

@@ -83,23 +83,92 @@ export const getFeaturedMatch = async () => {
 export const getUpcomingMatches = async () => {
   try {
     const matchesCollection = collection(db, 'matches');
-    const upcomingQuery = query(
-      matchesCollection, 
-      where('status', '==', 'upcoming'),
-      orderBy('date', 'asc'),
-      limit(5)
-    );
-    const upcomingSnapshot = await getDocs(upcomingQuery);
-    const upcomingMatches = upcomingSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
     
-    console.log('Próximas partidas encontradas no Firebase:', upcomingMatches);
-    return upcomingMatches;
+    // Primeiro tenta buscar com ordenação
+    let upcomingMatches;
+    try {
+      const upcomingQuery = query(
+        matchesCollection, 
+        where('status', 'in', ['upcoming', 'scheduled']),
+        orderBy('scheduledDate', 'asc'),
+        limit(10)
+      );
+      const upcomingSnapshot = await getDocs(upcomingQuery);
+      upcomingMatches = upcomingSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (indexError) {
+      console.warn('Índice não encontrado, buscando sem ordenação:', indexError);
+      // Fallback sem ordenação se não houver índice
+      const upcomingQuery = query(
+        matchesCollection, 
+        where('status', 'in', ['upcoming', 'scheduled']),
+        limit(10)
+      );
+      const upcomingSnapshot = await getDocs(upcomingQuery);
+      upcomingMatches = upcomingSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      // Ordenar manualmente por data
+      upcomingMatches.sort((a, b) => {
+        const dateA = new Date(a.scheduledDate || 0);
+        const dateB = new Date(b.scheduledDate || 0);
+        return dateA - dateB;
+      });
+    }
+    
+    // Filtrar apenas partidas futuras e ordenar por data mais próxima
+    const now = new Date();
+    const futureMatches = upcomingMatches
+      .filter(match => {
+        if (!match.scheduledDate) return false;
+        const matchDate = new Date(match.scheduledDate);
+        return matchDate >= now;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.scheduledDate);
+        const dateB = new Date(b.scheduledDate);
+        return dateA - dateB;
+      })
+      .slice(0, 4); // Limitar a 4 partidas
+    
+    console.log('Próximas partidas encontradas no Firebase (ordenadas por data):', futureMatches);
+    return futureMatches;
   } catch (error) {
     console.error('Erro ao buscar próximas partidas do Firebase:', error);
-    throw error;
+    
+    // Se falhar completamente, tenta buscar todas as partidas e filtrar
+    try {
+      console.log('Tentando buscar todas as partidas...');
+      const allMatchesSnapshot = await getDocs(collection(db, 'matches'));
+      const allMatches = allMatchesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      const now = new Date();
+      const upcomingMatches = allMatches
+        .filter(match => {
+          if (match.status !== 'upcoming' || !match.scheduledDate) return false;
+          const matchDate = new Date(match.scheduledDate);
+          return matchDate >= now;
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.scheduledDate);
+          const dateB = new Date(b.scheduledDate);
+          return dateA - dateB;
+        })
+        .slice(0, 6);
+      
+      console.log('Partidas filtradas e ordenadas localmente:', upcomingMatches);
+      return upcomingMatches;
+    } catch (fallbackError) {
+      console.error('Erro no fallback:', fallbackError);
+      throw error;
+    }
   }
 };
 
