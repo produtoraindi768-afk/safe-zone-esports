@@ -126,62 +126,83 @@ const StreamPopup = ({
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <Card className={`bg-gray-900/95 border-2 backdrop-blur-sm h-full transition-all duration-300 ${
-          isDragging ? 'border-purple-500 shadow-2xl shadow-purple-500/25 cursor-grabbing' : 
-          isHovering ? 'border-gray-600 shadow-xl cursor-grab' : 'border-gray-700 shadow-lg cursor-grab'
-        }`}>
+        <Card className={`bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 border-2 backdrop-blur-xl h-full transition-all duration-500 ${
+          isDragging ? 'border-purple-400 shadow-2xl shadow-purple-500/40 cursor-grabbing ring-2 ring-purple-500/30' : 
+          isHovering ? 'border-cyan-400/60 shadow-2xl shadow-cyan-500/20 cursor-grab ring-1 ring-cyan-400/20' : 'border-gray-600/50 shadow-xl shadow-black/50 cursor-grab'
+        } rounded-2xl overflow-hidden`}>
           {/* Header */}
           <div 
-            className={`bg-gradient-to-r from-gray-800/95 to-gray-700/95 px-4 py-3 flex items-center justify-between border-b transition-all duration-200 ${
-              isDragging ? 'bg-purple-800/90 border-purple-500' : 
-              'hover:bg-gray-700/95 border-gray-600'
-            }`}
+            className={`bg-gradient-to-r from-slate-800/95 via-gray-800/90 to-slate-700/95 px-6 py-4 flex items-center justify-between border-b transition-all duration-300 backdrop-blur-md ${
+              isDragging ? 'bg-gradient-to-r from-purple-800/90 via-purple-700/85 to-indigo-800/90 border-purple-400/60 shadow-lg shadow-purple-500/25' : 
+              isHovering ? 'bg-gradient-to-r from-cyan-800/80 via-slate-800/85 to-cyan-700/80 border-cyan-400/40' : 'border-gray-500/30'
+            } relative overflow-hidden`}
           >
-            <div className="flex items-center gap-3">
-              {/* Indicador de arraste */}
-              <div className={`flex items-center gap-1 transition-all duration-200 ${
-                isDragging ? 'text-purple-300' : 'text-gray-400 hover:text-gray-300'
-              }`}>
-                <Move className="w-4 h-4" />
-                <div className="flex flex-col gap-0.5">
-                  <div className="w-1 h-1 bg-current rounded-full opacity-60"></div>
-                  <div className="w-1 h-1 bg-current rounded-full opacity-80"></div>
-                  <div className="w-1 h-1 bg-current rounded-full opacity-60"></div>
-                </div>
+            {/* Efeito de brilho animado */}
+            <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform transition-transform duration-1000 ${
+              isHovering ? 'translate-x-full' : '-translate-x-full'
+            }`}></div>
+            <div className="flex items-center gap-4 relative z-10">
+              {/* Indicador de arraste com efeito neon */}
+              <div className="p-1 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+                <Move className={`w-4 h-4 cursor-grab transition-all duration-300 ${
+                  isDragging ? 'text-purple-300 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 
+                  isHovering ? 'text-cyan-300 drop-shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'text-gray-300'
+                }`} />
               </div>
               
-              {/* Nome do streamer */}
-              <div className="flex items-center gap-2">
-                {featuredStreamer && currentStreamIndex === 0 && (
-                  <span className="bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 px-3 py-1.5 rounded-full text-xs font-semibold shadow-md border border-yellow-300/30 backdrop-blur-sm">
-                    ⭐ DESTAQUE
+              {/* Título com efeito glassmorphism */}
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-white/10 backdrop-blur-sm">
+                  <Users className="w-5 h-5 text-purple-300 drop-shadow-[0_0_6px_rgba(168,85,247,0.6)]" />
+                </div>
+                <h2 className="text-white font-bold text-base bg-gradient-to-r from-white via-purple-100 to-cyan-100 bg-clip-text text-transparent drop-shadow-lg">
+                  Streams Ao Vivo
+                </h2>
+                <div className="relative">
+                  <span className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg border border-white/20 backdrop-blur-sm">
+                    {allStreams.length}
                   </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full blur-sm opacity-50 animate-pulse"></div>
+                </div>
+                {featuredStreamer && currentStreamIndex === 0 && (
+                  <div className="relative">
+                    <span className="bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 px-2 py-1 rounded-full text-xs font-bold shadow-lg border border-yellow-300/30 backdrop-blur-sm">
+                      ⭐ DESTAQUE
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full blur-sm opacity-40 animate-pulse"></div>
+                  </div>
                 )}
               </div>
             </div>
             
             <div className="flex items-center gap-2">
-              {/* Controles principais */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => window.open(`https://www.twitch.tv/${currentStream.twitchChannel}`, '_blank')}
-                  className="h-9 w-9 p-0 text-gray-300 hover:text-purple-300 hover:bg-purple-500/25 rounded-lg border border-transparent hover:border-purple-400/30 backdrop-blur-sm transition-all duration-300 shadow-sm hover:shadow-purple-500/20"
-                  title="Abrir no Twitch"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </Button>
+              {/* Controles modernizados */}
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="relative group">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(`https://www.twitch.tv/${currentStream.twitchChannel}`, '_blank')}
+                    className="text-purple-300 hover:text-white bg-white/5 hover:bg-purple-500/30 border border-white/10 hover:border-purple-400/50 transition-all duration-300 backdrop-blur-sm rounded-xl p-2.5 shadow-lg hover:shadow-purple-500/25"
+                    title="Abrir no Twitch"
+                  >
+                    <ExternalLink className="w-4 h-4 drop-shadow-[0_0_4px_rgba(168,85,247,0.6)]" />
+                  </Button>
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl blur-sm opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+                </div>
                 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="h-9 w-9 p-0 text-gray-300 hover:text-purple-300 hover:bg-purple-500/25 rounded-lg border border-transparent hover:border-purple-400/30 backdrop-blur-sm transition-all duration-300 shadow-sm hover:shadow-purple-500/20"
-                  title="Fechar popup"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                <div className="relative group">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                    className="text-gray-300 hover:text-white bg-white/5 hover:bg-red-500/30 border border-white/10 hover:border-red-400/50 transition-all duration-300 backdrop-blur-sm rounded-xl p-2.5 shadow-lg hover:shadow-red-500/25"
+                    title="Fechar popup"
+                  >
+                    <X className="w-4 h-4 drop-shadow-[0_0_4px_rgba(239,68,68,0.6)]" />
+                  </Button>
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl blur-sm opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -208,72 +229,96 @@ const StreamPopup = ({
                   </div>
                 )}
                 
-                {/* Overlay de avatares das streams online - Topo */}
+                {/* Overlay superior compacto no topo esquerdo - horizontal */}
                 {allStreams && allStreams.length > 1 && (
-                  <div className="absolute -top-8 -left-2 -right-2 bg-gradient-to-b from-black/90 via-black/60 to-transparent pt-12 px-6 pb-4 z-10">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-white text-xs font-semibold uppercase tracking-wide">
-                        Streams Online ({allStreams.length})
-                      </span>
-                    </div>
-                    <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 px-3 mt-2">
-                      {allStreams.map((stream, index) => {
-                        const isCurrentStream = index === currentStreamIndex;
-                        return (
-                          <div
-                            key={stream.id || index}
-                            className={`relative flex-shrink-0 cursor-pointer transition-all duration-200 ${
-                               isCurrentStream 
-                                 ? 'scale-110' 
-                                 : 'hover:scale-105'
-                             }`}
-                            onClick={() => setCurrentStreamIndex(index)}
-                            title={`${stream.player || stream.name} - ${stream.game || 'Streaming'}`}
-                          >
-                            <div className="relative">
-                              <img
-                                 src={stream.thumbnail || '/src/assets/search_images/default.jpg'}
-                                 alt={stream.player || stream.name}
-                                 className="w-10 h-10 rounded-full object-cover shadow-lg"
-                               />
-                              {/* Indicador online */}
-                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center shadow-md">
-                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                  <div className="absolute top-4 left-4 z-20">
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-black/80 via-gray-900/70 to-black/80 backdrop-blur-xl rounded-lg px-3 py-2 border border-white/10 shadow-xl">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-white text-xs font-semibold">
+                          {allStreams.length} Online
+                        </span>
+                      </div>
+                      <div className="flex gap-1.5 ml-2">
+                        {allStreams.map((stream, index) => {
+                          const isActive = index === currentStreamIndex;
+                          const isFeatured = featuredStreamer && index === 0;
+                          
+                          return (
+                            <div
+                              key={stream.id || index}
+                              className={`relative cursor-pointer transition-all duration-300 ${
+                                isActive ? 'scale-110' : 'scale-100 hover:scale-105'
+                              }`}
+                              onClick={() => setCurrentStreamIndex(index)}
+                              title={`${stream.player || stream.name} - ${stream.game || 'Streaming'}`}
+                            >
+                              {/* Container do avatar compacto */}
+                              <div className={`relative w-8 h-8 rounded-full transition-all duration-300 ${
+                                isActive 
+                                  ? 'ring-2 ring-purple-400/60 shadow-lg shadow-purple-500/50' 
+                                  : 'ring-1 ring-white/20 hover:ring-cyan-400/40 shadow-md'
+                              }`}>
+                                <img
+                                  src={stream.thumbnail || '/src/assets/search_images/default.jpg'}
+                                  alt={stream.player || stream.name}
+                                  className="w-full h-full rounded-full object-cover border border-white/10"
+                                />
+                                
+                                {/* Efeito de brilho no avatar ativo */}
+                                {isActive && (
+                                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 to-cyan-500/20 blur-sm animate-pulse"></div>
+                                )}
                               </div>
-                              {/* Badge de destaque para featured streamer */}
-                              {stream.isFeatured && (
-                                <div className="absolute -top-0.5 -left-0.5 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center shadow-md">
-                                  <span className="text-xs font-bold text-black">★</span>
+                              
+                              {/* Indicador de destaque compacto */}
+                              {isFeatured && (
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full border border-white shadow-lg flex items-center justify-center">
+                                  <span className="text-white text-xs font-bold">⭐</span>
                                 </div>
                               )}
+                              
+                              {/* Status online indicator compacto */}
+                              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border border-white shadow-md">
+                                <div className="absolute inset-0 bg-green-400 rounded-full blur-sm opacity-60 animate-pulse"></div>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Overlay com informações melhorado */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4">
+                {/* Overlay com informações ultra moderno */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-gray-900/80 to-transparent p-6">
                   <div className="flex justify-between items-end">
-                    <div className="flex-1">
-                      <h3 className="text-white font-bold text-sm mb-1 truncate">
+                    <div className="flex-1 space-y-3">
+                      {/* Nome do streamer com efeito neon */}
+                      <h3 className="text-white font-bold text-lg mb-2 truncate bg-gradient-to-r from-white via-purple-100 to-cyan-100 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
                         {currentStream.player || currentStream.name}
                       </h3>
+                      
+                      {/* Game com design moderno */}
                       {currentStream.game && (
-                        <div className="flex items-center gap-1 mb-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <p className="text-gray-200 text-xs font-medium">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="relative">
+                            <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full shadow-lg"></div>
+                            <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full blur-sm opacity-60 animate-pulse"></div>
+                          </div>
+                          <p className="text-gray-100 text-sm font-semibold bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm border border-white/20">
                             {currentStream.game}
                           </p>
                         </div>
                       )}
-                      {/* Indicador LIVE */}
-                      <div className="flex items-center gap-1 bg-black/40 rounded-full px-2 py-1">
-                        <Eye className="w-3 h-3 text-green-400" />
-                        <span className="text-green-400 text-xs font-bold">LIVE</span>
+                      
+                      {/* Indicador LIVE ultra moderno */}
+                      <div className="relative inline-flex">
+                        <div className="flex items-center gap-2 bg-gradient-to-r from-red-500/90 to-pink-500/90 rounded-full px-4 py-2 backdrop-blur-sm border border-red-400/30 shadow-lg">
+                          <Eye className="w-4 h-4 text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
+                          <span className="text-white text-sm font-bold tracking-wide">LIVE</span>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-pink-500 rounded-full blur-md opacity-50 animate-pulse"></div>
                       </div>
                     </div>
                   </div>

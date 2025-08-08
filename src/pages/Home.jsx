@@ -3,7 +3,9 @@ import { Play, Calendar, Clock, Trophy, Users, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getOnlineStreamers, subscribeToStreamers, processStreamerData, getFeaturedStreamer } from '../firebase/streamersService';
+import { getMainFeaturedNews, getRecentNews, processNewsData, getAllNews } from '../firebase/newsService';
 import StreamPopup from '../components/StreamPopup';
+import NewsModal from '../components/NewsModal';
 
 // ===== CONFIGURAÇÃO DOS STREAMERS =====
 // Dados simulados baseados no formato do Dashboard
@@ -70,6 +72,191 @@ const Home = () => {
   const [featuredStreamer, setFeaturedStreamer] = useState(null);
   const [showStreamPopup, setShowStreamPopup] = useState(false);
   const [currentPopupStream, setCurrentPopupStream] = useState(null);
+  
+  // Estados para notícias
+  const [mainFeaturedNews, setMainFeaturedNews] = useState(null);
+  const [recentNews, setRecentNews] = useState([]);
+  const [isLoadingNews, setIsLoadingNews] = useState(true);
+  const [selectedNews, setSelectedNews] = useState(null);
+  const [showNewsModal, setShowNewsModal] = useState(false);
+
+  // Função para carregar notícias
+  const loadNews = async () => {
+    setIsLoadingNews(true);
+    
+    console.log('🔍 Iniciando carregamento de notícias...');
+    console.log('🔧 Configuração do Firebase:', { projectId: 'dashboard-f0217' });
+    
+    // Dados simulados com estrutura completa
+    const simulatedNews = [
+      {
+        id: "1",
+        title: "Safe Zone conquista vitória épica no torneio regional",
+        excerpt: "Equipe demonstra excelente coordenação em partida decisiva contra rivals tradicionais.",
+        content: "A Safe Zone Esports conquistou uma vitória memorável no torneio regional de CS2, demonstrando coordenação excepcional e estratégias inovadoras que surpreenderam os adversários.",
+        contentHtml: "<p>A Safe Zone Esports conquistou uma vitória memorável no torneio regional de CS2, demonstrando coordenação excepcional e estratégias inovadoras que surpreenderam os adversários.</p>",
+        publishDate: "15/01/2024",
+        createdAt: "15/01/2024",
+        bannerUrl: "https://picsum.photos/800/400?random=1",
+        featuredImage: "https://picsum.photos/800/400?random=1",
+        category: "CS2",
+        author: "SAFEzone Admin",
+        isFeatured: true,
+        status: "published",
+        readingTime: 3,
+        tags: ["CS2", "Vitória", "Torneio", "Regional", "Coordenação"],
+        slug: "safe-zone-conquista-vitoria-epica-torneio-regional",
+        seoTitle: "Safe Zone conquista vitória épica no torneio regional - SAFEzone Esports",
+        seoDescription: "Equipe demonstra excelente coordenação em partida decisiva contra rivals tradicionais no torneio regional.",
+        views: 2847,
+        updatedAt: "15/01/2024"
+      },
+      {
+        id: "2",
+        title: "Novo recorde de audiência em stream oficial",
+        excerpt: "Transmissão ao vivo da Safe Zone bate recorde histórico de visualizações simultâneas.",
+        content: "A transmissão oficial da Safe Zone Esports estabeleceu um novo recorde de audiência, com mais de 50.000 espectadores simultâneos acompanhando a partida decisiva.",
+        contentHtml: "<p>A transmissão oficial da Safe Zone Esports estabeleceu um novo recorde de audiência, com mais de 50.000 espectadores simultâneos acompanhando a partida decisiva.</p>",
+        publishDate: "12/01/2024",
+        createdAt: "12/01/2024",
+        bannerUrl: "https://picsum.photos/800/400?random=2",
+        featuredImage: "https://picsum.photos/800/400?random=2",
+        category: "Streaming",
+        author: "SAFEzone Admin",
+        isFeatured: false,
+        status: "published",
+        readingTime: 2,
+        tags: ["Stream", "Recorde", "Audiência", "Transmissão", "Visualizações"],
+        slug: "novo-recorde-audiencia-stream-oficial",
+        seoTitle: "Novo recorde de audiência em stream oficial - SAFEzone Esports",
+        seoDescription: "Transmissão ao vivo da Safe Zone bate recorde histórico de visualizações simultâneas.",
+        views: 1923,
+        updatedAt: "12/01/2024"
+      },
+      {
+        id: "3",
+        title: "Calendário de treinos intensivos para próxima temporada",
+        excerpt: "Preparação focada em estratégias avançadas e coordenação de equipe.",
+        content: "A Safe Zone Esports anuncia seu calendário de treinos intensivos para a próxima temporada, com foco em estratégias avançadas e aprimoramento da coordenação de equipe.",
+        contentHtml: "<p>A Safe Zone Esports anuncia seu calendário de treinos intensivos para a próxima temporada, com foco em estratégias avançadas e aprimoramento da coordenação de equipe.</p>",
+        publishDate: "10/01/2024",
+        createdAt: "10/01/2024",
+        bannerUrl: "https://picsum.photos/800/400?random=3",
+        featuredImage: "https://picsum.photos/800/400?random=3",
+        category: "Geral",
+        author: "SAFEzone Admin",
+        isFeatured: false,
+        status: "published",
+        readingTime: 4,
+        tags: ["Treinos", "Temporada", "Estratégia", "Preparação"],
+        slug: "calendario-treinos-intensivos-proxima-temporada",
+        seoTitle: "Calendário de treinos intensivos para próxima temporada - SAFEzone Esports",
+        seoDescription: "Preparação focada em estratégias avançadas e coordenação de equipe para a nova temporada.",
+        views: 654,
+        updatedAt: "10/01/2024"
+      },
+      {
+        id: "4",
+        title: "Análise tática: Como a Safe Zone dominou o meta atual",
+        excerpt: "Breakdown completo das estratégias que levaram a equipe ao topo do ranking.",
+        content: "Uma análise detalhada das táticas e estratégias que permitiram à Safe Zone dominar o meta atual e alcançar o topo do ranking competitivo.",
+        contentHtml: "<p>Uma análise detalhada das táticas e estratégias que permitiram à Safe Zone dominar o meta atual e alcançar o topo do ranking competitivo.</p>",
+        publishDate: "08/01/2024",
+        createdAt: "08/01/2024",
+        bannerUrl: "https://picsum.photos/800/400?random=4",
+        featuredImage: "https://picsum.photos/800/400?random=4",
+        category: "CS2",
+        author: "SAFEzone Admin",
+        isFeatured: false,
+        status: "published",
+        readingTime: 5,
+        tags: ["CS2", "Análise", "Tática", "Meta", "Ranking"],
+        slug: "analise-tatica-safe-zone-dominou-meta-atual",
+        seoTitle: "Análise tática: Como a Safe Zone dominou o meta atual - SAFEzone Esports",
+        seoDescription: "Breakdown completo das estratégias que levaram a equipe ao topo do ranking competitivo.",
+        views: 1456,
+        updatedAt: "08/01/2024"
+      },
+      {
+        id: "5",
+        title: "Bootcamp internacional marca preparação para Major",
+        excerpt: "Equipe viaja para Europa para treinar com os melhores times do mundo.",
+        content: "A Safe Zone embarca em um bootcamp internacional na Europa, onde treinará intensivamente com algumas das melhores equipes do cenário mundial.",
+        contentHtml: "<p>A Safe Zone embarca em um bootcamp internacional na Europa, onde treinará intensivamente com algumas das melhores equipes do cenário mundial.</p>",
+        publishDate: "05/01/2024",
+        createdAt: "05/01/2024",
+        bannerUrl: "https://picsum.photos/800/400?random=5",
+        featuredImage: "https://picsum.photos/800/400?random=5",
+        category: "Torneios",
+        author: "SAFEzone Admin",
+        isFeatured: false,
+        status: "published",
+        readingTime: 3,
+        tags: ["Bootcamp", "Major", "Internacional", "Europa", "Preparação"],
+        slug: "bootcamp-internacional-preparacao-major",
+        seoTitle: "Bootcamp internacional marca preparação para Major - SAFEzone Esports",
+        seoDescription: "Equipe viaja para Europa para treinar com os melhores times do mundo em preparação para o Major.",
+        views: 987,
+        updatedAt: "05/01/2024"
+      }
+    ];
+    
+    try {
+      console.log('🔍 Iniciando busca de notícias no Firebase...');
+      
+      // Primeiro, vamos verificar se há QUALQUER notícia no Firebase
+      console.log('🔍 Verificando todas as notícias no Firebase...');
+      const allNews = await getAllNews();
+      console.log('📊 Total de notícias no Firebase:', allNews?.length || 0);
+      
+      if (allNews && allNews.length > 0) {
+        console.log('📋 Primeiras 3 notícias encontradas:', allNews.slice(0, 3).map(n => ({ 
+          id: n.id, 
+          title: n.title, 
+          isFeatured: n.isFeatured, 
+          status: n.status,
+          publishDate: n.publishDate 
+        })));
+        
+        // Se há notícias, vamos usá-las diretamente
+        const featuredNews = allNews.find(news => news.isFeatured === true && news.status === 'published');
+        const mainNews = featuredNews || allNews[0];
+        
+        // Filtrar notícias recentes excluindo a notícia de destaque para evitar repetição
+        const recentNewsFiltered = allNews
+          .filter(news => news.status === 'published' && news.id !== mainNews.id)
+          .sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate))
+          .slice(0, 6);
+        
+        console.log('🎯 Notícia em destaque encontrada:', featuredNews ? featuredNews.title : 'NENHUMA');
+        console.log('📋 Notícias recentes filtradas (sem repetir destaque):', recentNewsFiltered.length);
+        
+        setMainFeaturedNews(mainNews);
+        setRecentNews(recentNewsFiltered);
+        console.log('🎉 Usando dados do Firebase!');
+        
+      } else {
+        console.log('⚠️ Nenhuma notícia encontrada no Firebase. Usando dados simulados como fallback');
+        setMainFeaturedNews(simulatedNews[0]);
+        setRecentNews(simulatedNews.slice(1));
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro ao carregar notícias do Firebase:', error);
+      console.error('❌ Detalhes do erro:', error.message);
+      console.log('🔄 Usando dados simulados como fallback devido ao erro');
+      // Fallback para dados simulados em caso de erro
+      setMainFeaturedNews(simulatedNews[0]);
+      setRecentNews(simulatedNews.slice(1));
+    }
+    
+    console.log('✅ Carregamento de notícias finalizado');
+    
+    // Simular um pequeno delay para mostrar o loading
+    setTimeout(() => {
+      setIsLoadingNews(false);
+    }, 500);
+  };
 
   // Função para buscar dados diretamente do Firebase
   const checkStreamStatus = async () => {
@@ -120,9 +307,16 @@ const Home = () => {
     setIsLoadingStreams(false);
   };
 
-  // Verificar streams ao carregar o componente
+  // Função para abrir modal de notícia
+  const handleReadMore = (news) => {
+    setSelectedNews(news);
+    setShowNewsModal(true);
+  };
+
+  // Verificar streams e carregar notícias ao carregar o componente
   useEffect(() => {
     checkStreamStatus();
+    loadNews();
     
     // Tenta configurar listener em tempo real do Firebase
     let unsubscribe = null;
@@ -208,48 +402,7 @@ const Home = () => {
     return () => window.removeEventListener('streamPopupToggle', handleStreamPopupToggle);
   }, [featuredStreamer, showStreamPopup]);
 
-  const recentNews = [
-    {
-      id: 1,
-      title: "Safe Zone conquista vitória épica no torneio regional",
-      summary: "Equipe demonstra excelente coordenação em partida decisiva contra rivals tradicionais.",
-      date: "2024-01-15",
-      image: "/src/assets/search_images/BvYRHtryfcGU.png",
-      category: "CS2"
-    },
-    {
-      id: 2,
-      title: "Novo jogador se junta ao roster principal",
-      summary: "SZ_Lightning traz experiência internacional para fortalecer a equipe de Valorant.",
-      date: "2024-01-12",
-      image: "/src/assets/search_images/81uPdvvPCZKn.png",
-      category: "Valorant"
-    },
-    {
-      id: 3,
-      title: "Calendário de treinos intensivos para próxima temporada",
-      summary: "Preparação focada em estratégias avançadas e coordenação de equipe.",
-      date: "2024-01-10",
-      image: "/src/assets/search_images/vcCA7ugxuX5u.png",
-      category: "Geral"
-    },
-    {
-      id: 4,
-      title: "Análise tática: Como a Safe Zone dominou o meta atual",
-      summary: "Breakdown completo das estratégias que levaram a equipe ao topo do ranking.",
-      date: "2024-01-08",
-      image: "/src/assets/search_images/CHMA6ghxYIgZ.jpg",
-      category: "CS2"
-    },
-    {
-      id: 5,
-      title: "Bootcamp internacional marca preparação para Major",
-      summary: "Equipe viaja para Europa para treinar com os melhores times do mundo.",
-      date: "2024-01-05",
-      image: "/src/assets/search_images/y3F6G6k0zluy.jpg",
-      category: "Torneios"
-    }
-  ];
+
 
   const upcomingMatches = [
     {
@@ -289,28 +442,79 @@ const Home = () => {
             <div className="relative">
                 {/* Notícia Principal */}
                 <div className="max-w-7xl mx-auto mb-8">
-                  <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-80 group">
+                  <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-80 group cursor-pointer" onClick={() => handleReadMore(mainFeaturedNews)}>
                     <div className="relative h-full">
-                      <img 
-                        src={recentNews[0].image} 
-                        alt={recentNews[0].title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute top-4 left-4 bg-primary text-black px-3 py-1 rounded-full text-sm font-bold">
-                        {recentNews[0].category}
+                    {isLoadingNews ? (
+                      <div className="w-full h-full bg-gray-800 animate-pulse flex items-center justify-center">
+                        <div className="text-gray-400">Carregando notícia...</div>
                       </div>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
-                      <div className="absolute bottom-0 left-0 right-0 p-6">
-                        <h1 className="text-2xl lg:text-3xl font-bold text-white mb-3 line-clamp-2">{recentNews[0].title}</h1>
-                        <p className="text-gray-200 text-base mb-4 line-clamp-3">{recentNews[0].summary}</p>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-300 text-sm">{recentNews[0].date}</span>
-                          <Button className="bg-primary text-black hover:bg-primary/80">
-                            Ler matéria completa
-                          </Button>
+                    ) : mainFeaturedNews ? (
+                      <>
+                        <img 
+                          src={mainFeaturedNews.bannerUrl} 
+                          alt={mainFeaturedNews.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute top-4 left-4 bg-primary text-black px-3 py-1 rounded-full text-sm font-bold">
+                          {mainFeaturedNews.category}
                         </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+                        <div className="absolute top-12 left-0 right-0 bottom-6 p-6">
+                          <h1 className="text-2xl lg:text-3xl font-bold text-white mb-3 line-clamp-2">{mainFeaturedNews.title}</h1>
+                          <p className="text-gray-200 text-base mb-4 line-clamp-3">{mainFeaturedNews.excerpt}</p>
+                          
+                          {/* Informações adicionais do Firebase */}
+                          <div className="flex items-center gap-4 mb-4">
+                            {mainFeaturedNews.readingTime && (
+                              <div className="flex items-center gap-1 text-gray-300 text-sm">
+                                <Clock className="w-4 h-4" />
+                                <span>{mainFeaturedNews.readingTime} min de leitura</span>
+                              </div>
+                            )}
+                            {mainFeaturedNews.views && (
+                              <div className="flex items-center gap-1 text-gray-300 text-sm">
+                                <TrendingUp className="w-4 h-4" />
+                                <span>{mainFeaturedNews.views.toLocaleString()} visualizações</span>
+                              </div>
+                            )}
+                            {mainFeaturedNews.author && (
+                              <div className="flex items-center gap-1 text-gray-300 text-sm">
+                                <Users className="w-4 h-4" />
+                                <span>Por {mainFeaturedNews.author}</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Tags */}
+                          {mainFeaturedNews.tags && mainFeaturedNews.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {mainFeaturedNews.tags.slice(0, 3).map((tag, tagIndex) => (
+                                <span key={tagIndex} className="bg-gray-700/70 text-gray-200 px-3 py-1 rounded-full text-sm">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="flex justify-end items-center -mt-1">
+                            <Button 
+                              className="bg-primary text-black hover:bg-primary/80"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReadMore(mainFeaturedNews);
+                              }}
+                            >
+                              Ler matéria completa
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                        <div className="text-gray-400">Nenhuma notícia em destaque</div>
                       </div>
-                    </div>
+                    )}
+                  </div>
                   </Card>
                 </div>
 
@@ -320,163 +524,148 @@ const Home = () => {
                     
                     {/* Primeira Fileira - 3 Notícias */}
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-3">
-                       {/* Primeira Notícia Secundária */}
-                        <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group">
-                        <div className="relative h-full">
-                          <img 
-                            src={recentNews[1].image} 
-                            alt={recentNews[1].title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                            {recentNews[1].category}
-                          </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{recentNews[1].title}</h3>
-                            <p className="text-gray-300 text-sm mb-2 line-clamp-2">{recentNews[1].summary}</p>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-400 text-xs">{recentNews[1].date}</span>
-                              <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 text-xs">
-                                Ler mais
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-
-                      {/* Segunda Notícia Secundária */}
-                        <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group">
-                        <div className="relative h-full">
-                          <img 
-                            src={recentNews[2].image} 
-                            alt={recentNews[2].title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                            {recentNews[2].category}
-                          </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{recentNews[2].title}</h3>
-                            <p className="text-gray-300 text-sm mb-2 line-clamp-2">{recentNews[2].summary}</p>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-400 text-xs">{recentNews[2].date}</span>
-                              <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 text-xs">
-                                Ler mais
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-
-                      {/* Terceira Notícia Secundária */}
-                        <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group">
-                        <div className="relative h-full">
-                          <img 
-                            src={recentNews[3].image} 
-                            alt={recentNews[3].title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                            {recentNews[3].category}
-                          </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{recentNews[3].title}</h3>
-                            <p className="text-gray-300 text-sm mb-2 line-clamp-2">{recentNews[3].summary}</p>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-400 text-xs">{recentNews[3].date}</span>
-                              <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 text-xs">
-                                Ler mais
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
+                       {isLoadingNews ? (
+                         // Loading state para as três primeiras notícias
+                         Array.from({length: 3}).map((_, index) => (
+                           <Card key={index} className="bg-gray-900/50 border-gray-700 overflow-hidden h-48">
+                             <div className="w-full h-full bg-gray-800 animate-pulse flex items-center justify-center">
+                               <div className="text-gray-400">Carregando...</div>
+                             </div>
+                           </Card>
+                         ))
+                       ) : (
+                         recentNews.slice(0, 3).map((news, index) => (
+                           <Card key={news.id} className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group cursor-pointer" onClick={() => handleReadMore(news)}>
+                             <div className="relative h-full">
+                               <img 
+                                 src={news.featuredImage} 
+                                 alt={news.title}
+                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                               />
+                               <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
+                                 {news.category}
+                               </div>
+                               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                               <div className="absolute top-8 left-0 right-0 bottom-0 p-4">
+                                 <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{news.title}</h3>
+                                 <p className="text-gray-300 text-sm mb-2 line-clamp-2">{news.excerpt}</p>
+                                 
+                                 {/* Informações adicionais do Firebase */}
+                                 <div className="flex items-center gap-3 mb-2">
+                                   {news.readingTime && (
+                                     <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                       <Clock className="w-3 h-3" />
+                                       <span>{news.readingTime} min</span>
+                                     </div>
+                                   )}
+                                   {news.views && (
+                                     <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                       <TrendingUp className="w-3 h-3" />
+                                       <span>{news.views.toLocaleString()}</span>
+                                     </div>
+                                   )}
+                                   {news.author && (
+                                     <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                       <Users className="w-3 h-3" />
+                                       <span>{news.author}</span>
+                                     </div>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Botão Ler mais posicionado no canto inferior direito */}
+                                 <div className="absolute bottom-4 right-4">
+                                   <Button 
+                                     size="sm" 
+                                     className="bg-primary text-black hover:bg-primary/80 text-xs transition-all duration-200 flex items-center gap-1.5"
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       handleReadMore(news);
+                                     }}
+                                   >
+                                     <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></div>
+                                     Ler mais
+                                   </Button>
+                                 </div>
+                               </div>
+                             </div>
+                           </Card>
+                         ))
+                       )}
                     </div>
 
                     {/* Segunda Fileira - 3 Notícias */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-3">
-                      {/* Quarta Notícia Secundária */}
-                        <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group">
-                        <div className="relative h-full">
-                          <img 
-                            src={recentNews[4].image} 
-                            alt={recentNews[4].title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                            {recentNews[4].category}
-                          </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{recentNews[4].title}</h3>
-                            <p className="text-gray-300 text-sm mb-2 line-clamp-2">{recentNews[4].summary}</p>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-400 text-xs">{recentNews[4].date}</span>
-                              <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 text-xs">
-                                Ler mais
-                              </Button>
+                      {isLoadingNews ? (
+                        // Loading state para as três últimas notícias
+                        Array.from({length: 3}).map((_, index) => (
+                          <Card key={index} className="bg-gray-900/50 border-gray-700 overflow-hidden h-48">
+                            <div className="w-full h-full bg-gray-800 animate-pulse flex items-center justify-center">
+                              <div className="text-gray-400">Carregando...</div>
                             </div>
-                          </div>
-                        </div>
-                      </Card>
-
-                      {/* Quinta Notícia Secundária */}
-                        <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group">
-                        <div className="relative h-full">
-                          <img 
-                            src={recentNews[1].image} 
-                            alt="Notícia adicional"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                            Esports
-                          </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <h3 className="text-base font-bold text-white mb-2 line-clamp-2">Novidades em breve</h3>
-                            <p className="text-gray-300 text-sm mb-2 line-clamp-2">Acompanhe as últimas atualizações do mundo dos esports.</p>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-400 text-xs">2024-01-01</span>
-                              <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 text-xs">
-                                Em breve
-                              </Button>
+                          </Card>
+                        ))
+                      ) : (
+                        recentNews.slice(3, 6).map((news, index) => (
+                          <Card key={news.id} className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group cursor-pointer" onClick={() => handleReadMore(news)}>
+                            <div className="relative h-full">
+                              <img 
+                                src={news.featuredImage} 
+                                alt={news.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              />
+                              <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
+                                {news.category}
+                              </div>
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                              <div className="absolute top-8 left-0 right-0 bottom-0 p-4">
+                                <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{news.title}</h3>
+                                <p className="text-gray-300 text-sm mb-2 line-clamp-2">{news.excerpt}</p>
+                                
+                                {/* Informações adicionais do Firebase */}
+                                <div className="flex items-center gap-3 mb-2">
+                                  {news.readingTime && (
+                                    <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                      <Clock className="w-3 h-3" />
+                                      <span>{news.readingTime} min</span>
+                                    </div>
+                                  )}
+                                  {news.views && (
+                                    <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                      <TrendingUp className="w-3 h-3" />
+                                      <span>{news.views.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  {news.author && (
+                                    <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                      <Users className="w-3 h-3" />
+                                      <span>{news.author}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Botão Ler mais posicionado no canto inferior direito */}
+                                <div className="absolute bottom-4 right-4">
+                                  <Button 
+                                    size="sm" 
+                                    className="bg-primary text-black hover:bg-primary/80 text-xs transition-all duration-200 flex items-center gap-1.5"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleReadMore(news);
+                                    }}
+                                  >
+                                    <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></div>
+                                    Ler mais
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </Card>
-
-                      {/* Sexta Notícia */}
-                       <Card className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group">
-                        <div className="relative h-full">
-                          <img 
-                            src={recentNews[0].image} 
-                            alt="Notícia adicional"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                            Destaque
-                          </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <h3 className="text-base font-bold text-white mb-2 line-clamp-2">Mais notícias em breve</h3>
-                            <p className="text-gray-300 text-sm mb-2 line-clamp-2">Fique ligado para mais atualizações da Safe Zone Esports.</p>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-400 text-xs">2024-01-01</span>
-                              <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80 text-xs">
-                                Em breve
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
+                          </Card>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
-            )}
           </div>
 
           {/* Streams Adicionais - apenas se houver mais de uma stream */}
@@ -577,8 +766,6 @@ const Home = () => {
               </div>
             </div>
           )}
-
-
         </div>
       </section>
 
@@ -593,30 +780,83 @@ const Home = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {recentNews.map((news) => (
-              <Card key={news.id} className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden">
-                <div className="relative">
-                  <img 
-                    src={news.image} 
-                    alt={news.title}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute top-4 left-4 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                    {news.category}
+            {isLoadingNews ? (
+              // Loading state para as notícias recentes
+              Array.from({length: 3}).map((_, index) => (
+                <Card key={index} className="bg-gray-900/50 border-gray-700 overflow-hidden">
+                  <div className="w-full h-48 bg-gray-800 animate-pulse"></div>
+                  <CardContent className="p-4">
+                    <div className="h-4 bg-gray-700 rounded mb-2 animate-pulse"></div>
+                    <div className="h-3 bg-gray-700 rounded mb-3 animate-pulse"></div>
+                    <div className="flex justify-between items-center">
+                      <div className="h-3 w-16 bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-6 w-16 bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              recentNews.slice(0, 3).map((news) => (
+                <Card key={news.id} className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden cursor-pointer" onClick={() => handleReadMore(news)}>
+                  <div className="relative">
+                    <img 
+                      src={news.featuredImage} 
+                      alt={news.title}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute top-4 left-4 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
+                      {news.category}
+                    </div>
                   </div>
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">{news.title}</h3>
-                  <p className="text-gray-400 text-sm mb-3 line-clamp-3">{news.summary}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500">{news.date}</span>
-                    <Button size="sm" variant="ghost" className="text-primary hover:text-primary/80">
-                      Ler mais
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <CardContent className="p-4">
+                    <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">{news.title}</h3>
+                    <p className="text-gray-400 text-sm mb-3 line-clamp-3">{news.excerpt}</p>
+                    
+                    {/* Informações adicionais */}
+                    <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{news.readTime || '5 min'}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" />
+                        <span>{news.views || '1.2k'} views</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        <span>{news.author || 'Safe Zone'}</span>
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    {news.tags && news.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {news.tags.slice(0, 3).map((tag, index) => (
+                          <span key={index} className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">{news.publishDate}</span>
+                      <Button 
+                        size="sm" 
+                        className="bg-primary text-black hover:bg-primary/80 text-xs transition-all duration-200 flex items-center gap-1.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReadMore(news);
+                        }}
+                      >
+                        <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></div>
+                        Ler mais
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -705,6 +945,13 @@ const Home = () => {
         isOpen={showStreamPopup}
         onClose={() => setShowStreamPopup(false)}
         onStreamChange={(stream) => setCurrentPopupStream(stream)}
+      />
+
+      {/* News Modal */}
+      <NewsModal
+        news={selectedNews}
+        isOpen={showNewsModal}
+        onClose={() => setShowNewsModal(false)}
       />
     </div>
   );

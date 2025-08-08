@@ -5,26 +5,101 @@ import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, 
 const NEWS_COLLECTION = 'news';
 
 /**
+ * Processa e formata os dados das notícias do Firebase
+ * @param {Array} newsArray - Array de notícias brutas do Firebase
+ * @returns {Array} Array de notícias processadas
+ */
+export const processNewsData = (newsData) => {
+  // Se for um objeto único, converte para array
+  const newsArray = Array.isArray(newsData) ? newsData : [newsData];
+  
+  const processedNews = newsArray.map(news => {
+    // Formatar data de publicação
+    let formattedDate = '';
+    if (news.publishDate) {
+      try {
+        const date = new Date(news.publishDate);
+        formattedDate = date.toLocaleDateString('pt-BR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+      } catch (error) {
+        formattedDate = news.publishDate;
+      }
+    }
+
+    // Formatar timestamp de criação
+    let createdAtFormatted = '';
+    if (news.createdAt) {
+      try {
+        let date;
+        if (news.createdAt.toDate) {
+          // Firestore Timestamp
+          date = news.createdAt.toDate();
+        } else {
+          // String ou Date
+          date = new Date(news.createdAt);
+        }
+        createdAtFormatted = date.toLocaleDateString('pt-BR');
+      } catch (error) {
+        createdAtFormatted = news.createdAt;
+      }
+    }
+
+    return {
+      id: news.id,
+      title: news.title || '',
+      excerpt: news.excerpt || '',
+      content: news.content || '',
+      contentHtml: news.contentHtml || '',
+      author: news.author || 'SAFEzone Admin',
+      category: news.category || 'Esports',
+      bannerUrl: news.bannerUrl || news.featuredImage || '',
+      featuredImage: news.featuredImage || news.bannerUrl || '',
+      publishDate: formattedDate,
+      createdAt: createdAtFormatted,
+      isFeatured: news.isFeatured || false,
+      status: news.status || 'published',
+      readingTime: news.readingTime || 1,
+      tags: news.tags || [],
+      slug: news.slug || '',
+      seoTitle: news.seoTitle || news.title,
+      seoDescription: news.seoDescription || news.excerpt,
+      views: news.views || 0,
+      updatedAt: news.updatedAt || news.createdAt
+    };
+  });
+  
+  // Se foi passado um objeto único, retorna apenas o primeiro item
+  return Array.isArray(newsData) ? processedNews : processedNews[0];
+};
+
+/**
  * Busca todas as notícias do Firebase
  * @returns {Promise<Array>} Array de notícias
  */
 export const getAllNews = async () => {
   try {
+    console.log('🔍 Buscando todas as notícias no Firebase...');
     const newsCollection = collection(db, NEWS_COLLECTION);
-    const newsQuery = query(newsCollection, orderBy('date', 'desc'));
+    const newsQuery = query(newsCollection, orderBy('publishDate', 'desc'));
     const querySnapshot = await getDocs(newsQuery);
     
     const news = [];
     querySnapshot.forEach((doc) => {
+      const data = doc.data();
       news.push({
         id: doc.id,
-        ...doc.data()
+        ...data
       });
     });
     
+    console.log('✅ Notícias encontradas no Firebase:', news.length);
     return news;
   } catch (error) {
-    console.error('Erro ao buscar notícias:', error);
+    console.error('❌ Erro ao buscar notícias:', error);
+    console.error('❌ Detalhes do erro:', error.message);
     throw error;
   }
 };
@@ -68,8 +143,9 @@ export const getFeaturedNews = async () => {
     const newsCollection = collection(db, NEWS_COLLECTION);
     const newsQuery = query(
       newsCollection, 
-      where('featured', '==', true),
-      orderBy('date', 'desc')
+      where('isFeatured', '==', true),
+      where('status', '==', 'published'),
+      orderBy('publishDate', 'desc')
     );
     const querySnapshot = await getDocs(newsQuery);
     
@@ -81,9 +157,62 @@ export const getFeaturedNews = async () => {
       });
     });
     
-    return news;
+    return processNewsData(news);
   } catch (error) {
     console.error('Erro ao buscar notícias em destaque:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca a notícia principal em destaque
+ * @returns {Promise<Object|null>} Notícia principal em destaque
+ */
+export const getMainFeaturedNews = async () => {
+  try {
+    const featuredNews = await getFeaturedNews();
+    return featuredNews.length > 0 ? featuredNews[0] : null;
+  } catch (error) {
+    console.error('Erro ao buscar notícia principal:', error);
+    return null;
+  }
+};
+
+/**
+ * Busca notícias recentes (excluindo a principal)
+ * @param {number} limitCount - Número de notícias a retornar
+ * @returns {Promise<Array>} Array de notícias recentes
+ */
+export const getRecentNews = async (limitCount = 6) => {
+  try {
+    const newsCollection = collection(db, NEWS_COLLECTION);
+    const newsQuery = query(
+      newsCollection,
+      where('status', '==', 'published'),
+      orderBy('publishDate', 'desc'),
+      limit(limitCount + 1) // +1 para excluir a principal depois
+    );
+    const querySnapshot = await getDocs(newsQuery);
+    
+    const news = [];
+    querySnapshot.forEach((doc) => {
+      news.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    // Remove a primeira notícia se ela for featured (para não duplicar)
+    const processedNews = processNewsData(news);
+    const mainFeatured = await getMainFeaturedNews();
+    
+    if (mainFeatured && processedNews.length > 0 && processedNews[0].id === mainFeatured.id) {
+      return processedNews.slice(1, limitCount + 1);
+    }
+    
+    return processedNews.slice(0, limitCount);
+  } catch (error) {
+    console.error('Erro ao buscar notícias recentes:', error);
     throw error;
   }
 };
