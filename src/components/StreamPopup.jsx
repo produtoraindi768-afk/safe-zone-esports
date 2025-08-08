@@ -18,11 +18,27 @@ const StreamPopup = ({
   const [isHovering, setIsHovering] = useState(false);
   const popupRef = useRef(null);
 
-  // Combinar featured streamer com live streams, evitando duplicação
-  const filteredLiveStreams = featuredStreamer 
-    ? liveStreams.filter(stream => stream.id !== featuredStreamer.id)
-    : liveStreams;
-  const allStreams = featuredStreamer ? [featuredStreamer, ...filteredLiveStreams] : liveStreams;
+  // Filtrar apenas streams marcadas como destaque no banco de dados
+  const featuredStreams = liveStreams.filter(stream => {
+    return stream.isFeatured === true;
+  });
+  
+  // Combinar featuredStreamer com outras streams em destaque, evitando duplicação
+  const allFeaturedStreams = [];
+  
+  // Adicionar featuredStreamer primeiro se existir
+  if (featuredStreamer) {
+    allFeaturedStreams.push(featuredStreamer);
+  }
+  
+  // Adicionar outras streams em destaque que não sejam o featuredStreamer
+  featuredStreams.forEach(stream => {
+    if (!featuredStreamer || stream.id !== featuredStreamer.id) {
+      allFeaturedStreams.push(stream);
+    }
+  });
+  
+  const allStreams = allFeaturedStreams;
   const currentStream = allStreams[currentStreamIndex];
 
   // Garantir que sempre comece com a stream em destaque quando o popup abrir
@@ -75,8 +91,21 @@ const StreamPopup = ({
 
   const handleMouseDown = (e) => {
     // Evitar arrastar quando clicar em botões ou elementos interativos
-    if (e.target.closest('button') || e.target.closest('iframe')) {
-      return;
+    const isButton = e.target.closest('button') || 
+                    e.target.tagName === 'BUTTON' ||
+                    e.target.closest('[role="button"]');
+    
+    const isInteractiveElement = e.target.closest('iframe') ||
+                                e.target.closest('svg') ||
+                                e.target.tagName === 'SVG' ||
+                                e.target.closest('.pointer-events-auto button');
+    
+    // Verificar se o clique foi em um dos botões específicos (fechar ou abrir Twitch)
+    const isControlButton = e.target.closest('[title="Fechar popup"]') ||
+                           e.target.closest('[title="Abrir no Twitch"]');
+    
+    if (isButton || isInteractiveElement || isControlButton) {
+      return; // Não prevenir o evento, apenas não iniciar o arraste
     }
     
     setIsDragging(true);
@@ -109,8 +138,8 @@ const StreamPopup = ({
     <div className="fixed inset-0 z-50 pointer-events-none">
       <div
         ref={popupRef}
-        className={`absolute pointer-events-auto transition-all duration-300 ease-out ${
-          isDragging ? 'scale-105 shadow-2xl' : 'scale-100'
+        className={`absolute pointer-events-auto transition-all duration-300 ease-out cursor-grab ${
+          isDragging ? 'scale-105 shadow-2xl cursor-grabbing' : 'scale-100'
         } ${
           isHovering ? 'shadow-purple-500/20' : ''
         }`}
@@ -141,7 +170,7 @@ const StreamPopup = ({
             <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform transition-transform duration-1000 ${
               isHovering ? 'translate-x-full' : '-translate-x-full'
             }`}></div>
-            <div className="flex items-center gap-4 relative z-10">
+            <div className="flex items-center gap-4 relative z-10 flex-1">
               {/* Indicador de arraste com efeito neon */}
               <div className="p-1 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm">
                 <Move className={`w-4 h-4 cursor-grab transition-all duration-300 ${
@@ -164,44 +193,57 @@ const StreamPopup = ({
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full blur-sm opacity-50 animate-pulse"></div>
                 </div>
-                {featuredStreamer && currentStreamIndex === 0 && (
-                  <div className="relative">
-                    <span className="bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 px-2 py-1 rounded-full text-xs font-bold shadow-lg border border-yellow-300/30 backdrop-blur-sm">
-                      ⭐ DESTAQUE
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full blur-sm opacity-40 animate-pulse"></div>
-                  </div>
-                )}
+                {/* Badge de destaque sempre visível para todas as streams */}
+                <div className="relative">
+                  <span className="bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-900 px-2 py-1 rounded-full text-xs font-bold shadow-lg border border-yellow-300/30 backdrop-blur-sm">
+                    ⭐ DESTAQUE
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full blur-sm opacity-40 animate-pulse"></div>
+                </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative z-50">
               {/* Controles modernizados */}
-              <div className="flex items-center gap-3 relative z-10">
+              <div className="flex items-center gap-3 relative z-50 pointer-events-auto">
                 <div className="relative group">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.open(`https://www.twitch.tv/${currentStream.twitchChannel}`, '_blank')}
-                    className="text-purple-300 hover:text-white bg-white/5 hover:bg-purple-500/30 border border-white/10 hover:border-purple-400/50 transition-all duration-300 backdrop-blur-sm rounded-xl p-2.5 shadow-lg hover:shadow-purple-500/25"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const twitchChannel = currentStream?.twitchChannel || currentStream?.name?.toLowerCase();
+                      if (twitchChannel) {
+                        const url = `https://www.twitch.tv/${twitchChannel}`;
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                    className="text-purple-300 hover:text-white bg-white/5 hover:bg-purple-500/30 border border-white/10 hover:border-purple-400/50 transition-all duration-300 backdrop-blur-sm rounded-xl p-2.5 shadow-lg hover:shadow-purple-500/25 pointer-events-auto relative z-50 cursor-pointer"
                     title="Abrir no Twitch"
                   >
                     <ExternalLink className="w-4 h-4 drop-shadow-[0_0_4px_rgba(168,85,247,0.6)]" />
                   </Button>
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl blur-sm opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl blur-sm opacity-0 group-hover:opacity-30 transition-opacity duration-300 pointer-events-none"></div>
                 </div>
                 
                 <div className="relative group">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={onClose}
-                    className="text-gray-300 hover:text-white bg-white/5 hover:bg-red-500/30 border border-white/10 hover:border-red-400/50 transition-all duration-300 backdrop-blur-sm rounded-xl p-2.5 shadow-lg hover:shadow-red-500/25"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (typeof onClose === 'function') {
+                        onClose();
+                      }
+                    }}
+                    className="text-gray-300 hover:text-white bg-white/5 hover:bg-red-500/30 border border-white/10 hover:border-red-400/50 transition-all duration-300 backdrop-blur-sm rounded-xl p-2.5 shadow-lg hover:shadow-red-500/25 pointer-events-auto relative z-50 cursor-pointer"
                     title="Fechar popup"
                   >
                     <X className="w-4 h-4 drop-shadow-[0_0_4px_rgba(239,68,68,0.6)]" />
                   </Button>
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl blur-sm opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl blur-sm opacity-0 group-hover:opacity-30 transition-opacity duration-300 pointer-events-none"></div>
                 </div>
               </div>
             </div>
@@ -271,12 +313,10 @@ const StreamPopup = ({
                                 )}
                               </div>
                               
-                              {/* Indicador de destaque compacto */}
-                              {isFeatured && (
-                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full border border-white shadow-lg flex items-center justify-center">
-                                  <span className="text-white text-xs font-bold">⭐</span>
-                                </div>
-                              )}
+                              {/* Indicador de destaque compacto - sempre visível */}
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full border border-white shadow-lg flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">⭐</span>
+                              </div>
                               
                               {/* Status online indicator compacto */}
                               <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border border-white shadow-md">

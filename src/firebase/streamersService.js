@@ -101,6 +101,7 @@ export const processStreamerData = (streamer) => {
     twitchChannel: streamer.streamUrl ? streamer.streamUrl.split('/').pop() : streamer.name.toLowerCase(),
     isLive: true,
     isOnline: streamer.isOnline,
+    isFeatured: streamer.isFeatured || false, // Preservar propriedade isFeatured
     viewers,
     game: streamer.category,
     twitchUrl: streamer.streamUrl,

@@ -535,8 +535,8 @@ const Home = () => {
                          ))
                        ) : (
                          recentNews.slice(0, 3).map((news, index) => (
-                           <Card key={news.id} className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group cursor-pointer" onClick={() => handleReadMore(news)}>
-                             <div className="relative h-full">
+                           <Card key={news.id} className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden group cursor-pointer" onClick={() => handleReadMore(news)}>
+                             <div className="relative h-48">
                                <img 
                                  src={news.featuredImage} 
                                  alt={news.title}
@@ -549,28 +549,6 @@ const Home = () => {
                                <div className="absolute top-8 left-0 right-0 bottom-0 p-4">
                                  <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{news.title}</h3>
                                  <p className="text-gray-300 text-sm mb-2 line-clamp-2">{news.excerpt}</p>
-                                 
-                                 {/* Informações adicionais do Firebase */}
-                                 <div className="flex items-center gap-3 mb-2">
-                                   {news.readingTime && (
-                                     <div className="flex items-center gap-1 text-gray-400 text-xs">
-                                       <Clock className="w-3 h-3" />
-                                       <span>{news.readingTime} min</span>
-                                     </div>
-                                   )}
-                                   {news.views && (
-                                     <div className="flex items-center gap-1 text-gray-400 text-xs">
-                                       <TrendingUp className="w-3 h-3" />
-                                       <span>{news.views.toLocaleString()}</span>
-                                     </div>
-                                   )}
-                                   {news.author && (
-                                     <div className="flex items-center gap-1 text-gray-400 text-xs">
-                                       <Users className="w-3 h-3" />
-                                       <span>{news.author}</span>
-                                     </div>
-                                   )}
-                                 </div>
                                  
                                  {/* Botão Ler mais posicionado no canto inferior direito */}
                                  <div className="absolute bottom-4 right-4">
@@ -585,6 +563,20 @@ const Home = () => {
                                      <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></div>
                                      Ler mais
                                    </Button>
+                                 </div>
+                               </div>
+                             </div>
+                             
+                             {/* Seção cinza inferior com informações */}
+                             <div className="bg-gray-800/50 p-3 border-t border-gray-700">
+                               <div className="flex items-center gap-3">
+                                 <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                   <Clock className="w-3 h-3" />
+                                   <span>{news.readingTime || '1'} min</span>
+                                 </div>
+                                 <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                   <Users className="w-3 h-3" />
+                                   <span>{news.author || 'SAFEzone Admin'}</span>
                                  </div>
                                </div>
                              </div>
@@ -606,60 +598,52 @@ const Home = () => {
                         ))
                       ) : (
                         recentNews.slice(3, 6).map((news, index) => (
-                          <Card key={news.id} className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden h-48 group cursor-pointer" onClick={() => handleReadMore(news)}>
-                            <div className="relative h-full">
-                              <img 
-                                src={news.featuredImage} 
-                                alt={news.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              />
-                              <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                                {news.category}
-                              </div>
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
-                              <div className="absolute top-8 left-0 right-0 bottom-0 p-4">
-                                <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{news.title}</h3>
-                                <p className="text-gray-300 text-sm mb-2 line-clamp-2">{news.excerpt}</p>
-                                
-                                {/* Informações adicionais do Firebase */}
-                                <div className="flex items-center gap-3 mb-2">
-                                  {news.readingTime && (
-                                    <div className="flex items-center gap-1 text-gray-400 text-xs">
-                                      <Clock className="w-3 h-3" />
-                                      <span>{news.readingTime} min</span>
-                                    </div>
-                                  )}
-                                  {news.views && (
-                                    <div className="flex items-center gap-1 text-gray-400 text-xs">
-                                      <TrendingUp className="w-3 h-3" />
-                                      <span>{news.views.toLocaleString()}</span>
-                                    </div>
-                                  )}
-                                  {news.author && (
-                                    <div className="flex items-center gap-1 text-gray-400 text-xs">
-                                      <Users className="w-3 h-3" />
-                                      <span>{news.author}</span>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Botão Ler mais posicionado no canto inferior direito */}
-                                <div className="absolute bottom-4 right-4">
-                                  <Button 
-                                    size="sm" 
-                                    className="bg-primary text-black hover:bg-primary/80 text-xs transition-all duration-200 flex items-center gap-1.5"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleReadMore(news);
-                                    }}
-                                  >
-                                    <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></div>
-                                    Ler mais
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
+                          <Card key={news.id} className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden group cursor-pointer" onClick={() => handleReadMore(news)}>
+                             <div className="relative h-48">
+                               <img 
+                                 src={news.featuredImage} 
+                                 alt={news.title}
+                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                               />
+                               <div className="absolute top-3 left-3 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
+                                 {news.category}
+                               </div>
+                               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                               <div className="absolute top-8 left-0 right-0 bottom-0 p-4">
+                                 <h3 className="text-base font-bold text-white mb-2 line-clamp-2">{news.title}</h3>
+                                 <p className="text-gray-300 text-sm mb-2 line-clamp-2">{news.excerpt}</p>
+                                 
+                                 {/* Botão Ler mais posicionado no canto inferior direito */}
+                                 <div className="absolute bottom-4 right-4">
+                                   <Button 
+                                     size="sm" 
+                                     className="bg-primary text-black hover:bg-primary/80 text-xs transition-all duration-200 flex items-center gap-1.5"
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       handleReadMore(news);
+                                     }}
+                                   >
+                                     <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></div>
+                                     Ler mais
+                                   </Button>
+                                 </div>
+                               </div>
+                             </div>
+                             
+                             {/* Seção cinza inferior com informações */}
+                             <div className="bg-gray-800/50 p-3 border-t border-gray-700">
+                               <div className="flex items-center gap-3">
+                                 <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                   <Clock className="w-3 h-3" />
+                                   <span>{news.readingTime || '1'} min</span>
+                                 </div>
+                                 <div className="flex items-center gap-1 text-gray-400 text-xs">
+                                   <Users className="w-3 h-3" />
+                                   <span>{news.author || 'SAFEzone Admin'}</span>
+                                 </div>
+                               </div>
+                             </div>
+                           </Card>
                         ))
                       )}
                     </div>
@@ -769,97 +753,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Seção de Notícias Recentes */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-black/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-white">Últimas Notícias</h2>
-            <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-black">
-              Ver Todas
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {isLoadingNews ? (
-              // Loading state para as notícias recentes
-              Array.from({length: 3}).map((_, index) => (
-                <Card key={index} className="bg-gray-900/50 border-gray-700 overflow-hidden">
-                  <div className="w-full h-48 bg-gray-800 animate-pulse"></div>
-                  <CardContent className="p-4">
-                    <div className="h-4 bg-gray-700 rounded mb-2 animate-pulse"></div>
-                    <div className="h-3 bg-gray-700 rounded mb-3 animate-pulse"></div>
-                    <div className="flex justify-between items-center">
-                      <div className="h-3 w-16 bg-gray-700 rounded animate-pulse"></div>
-                      <div className="h-6 w-16 bg-gray-700 rounded animate-pulse"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              recentNews.slice(0, 3).map((news) => (
-                <Card key={news.id} className="bg-gray-900/50 border-gray-700 sz-card-hover overflow-hidden cursor-pointer" onClick={() => handleReadMore(news)}>
-                  <div className="relative">
-                    <img 
-                      src={news.featuredImage} 
-                      alt={news.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute top-4 left-4 bg-primary text-black px-2 py-1 rounded text-xs font-bold">
-                      {news.category}
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">{news.title}</h3>
-                    <p className="text-gray-400 text-sm mb-3 line-clamp-3">{news.excerpt}</p>
-                    
-                    {/* Informações adicionais */}
-                    <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{news.readTime || '5 min'}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        <span>{news.views || '1.2k'} views</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        <span>{news.author || 'Safe Zone'}</span>
-                      </div>
-                    </div>
 
-                    {/* Tags */}
-                    {news.tags && news.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {news.tags.slice(0, 3).map((tag, index) => (
-                          <span key={index} className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">{news.publishDate}</span>
-                      <Button 
-                        size="sm" 
-                        className="bg-primary text-black hover:bg-primary/80 text-xs transition-all duration-200 flex items-center gap-1.5"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleReadMore(news);
-                        }}
-                      >
-                        <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></div>
-                        Ler mais
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* Próximas Partidas */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
